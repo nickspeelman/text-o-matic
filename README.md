@@ -1,15 +1,15 @@
-# Text-o-Matic v0.1.9
+# Text-o-Matic v0.1.10
 
 A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
 
 
-## v0.1.9 changes
+## v0.1.10 changes
 
 - Added local import support for `.xls` and `.xlsx` workbooks in addition to CSV.
 - Multi-sheet Excel workbooks now show a sheet selector before import.
 - Excel rows feed into the same column-mapping, merge-field, dedupe, review, and texting workflow as CSV data.
 - Uses the full SheetJS Community Edition browser build (`0.20.3`) because legacy `.xls` support is not included in the mini build. The library code is fetched as a static browser asset; workbook contents are read locally and are not sent with that request.
-- Bumped the single-source service-worker version to `0.1.9`.
+- Bumped the single-source service-worker version to `0.1.10`.
 
 ## Core features
 
@@ -99,3 +99,10 @@ Questions, issues, or comments: `nick@nickspeelman.com`
 ## Privacy screen
 
 The Welcome/About dialog links to a dedicated Privacy screen explaining local contact/message processing, QR device-to-device transfer, Cloudflare Web Analytics, local browser storage, and the privacy contact address.
+
+
+## v0.1.10 Excel/PWA fix
+
+- Excel uploads are detected by filename, MIME type, and binary file signature so `.xls`/`.xlsx` files cannot fall through to the CSV/plain-text parser.
+- Multi-sheet workbooks show a worksheet chooser before column mapping.
+- Same-origin PWA assets now use a network-first service-worker strategy, with cached files retained as an offline fallback, reducing mixed-version/stale-JavaScript behavior after deployments.

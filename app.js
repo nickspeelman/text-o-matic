@@ -161,10 +161,30 @@
   }
 
   let selectedFile = null;
+  let selectedFileKind = null;
   let pendingWorkbook = null;
 
-  function isExcelFile(file) {
-    return /\.(xlsx|xls)$/i.test(file?.name || '');
+  async function detectFileKind(file) {
+    if (!file) return null;
+
+    const name = file.name || '';
+    const mime = (file.type || '').toLowerCase();
+    if (/\.xlsx$/i.test(name) || mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'excel';
+    if (/\.xls$/i.test(name) || mime === 'application/vnd.ms-excel') return 'excel';
+    if (/\.csv$/i.test(name) || mime === 'text/csv' || mime === 'application/csv') return 'text';
+
+    // Defensive signature check. XLSX is a ZIP container (PK...), while legacy
+    // XLS uses the OLE Compound File signature D0 CF 11 E0 A1 B1 1A E1.
+    const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    const looksZip = bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b &&
+      ((bytes[2] === 0x03 && bytes[3] === 0x04) ||
+       (bytes[2] === 0x05 && bytes[3] === 0x06) ||
+       (bytes[2] === 0x07 && bytes[3] === 0x08));
+    const xlsSig = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+    const looksXls = bytes.length >= 8 && xlsSig.every((value, index) => bytes[index] === value);
+    if (looksZip || looksXls) return 'excel';
+
+    return 'text';
   }
 
   function resetWorkbookSelection() {
@@ -193,6 +213,7 @@
 
   $('csvFile').addEventListener('change', async e => {
     selectedFile = e.target.files?.[0] || null;
+    selectedFileKind = null;
     resetWorkbookSelection();
     $('fileName').textContent = selectedFile ? selectedFile.name : 'No file selected';
     $('parseFileBtn').disabled = !selectedFile;
@@ -200,20 +221,28 @@
     $('step1Status').textContent = '';
     $('step1Status').className = 'status';
 
-    if (!selectedFile || !isExcelFile(selectedFile)) return;
+    if (!selectedFile) return;
 
-    $('parseFileBtn').disabled = true;
-    $('parseFileBtn').textContent = 'Reading workbook…';
     try {
+      selectedFileKind = await detectFileKind(selectedFile);
+      if (selectedFileKind !== 'excel') return;
+
+      $('parseFileBtn').disabled = true;
+      $('parseFileBtn').textContent = 'Reading workbook…';
       pendingWorkbook = await loadExcelWorkbook(selectedFile);
       const names = pendingWorkbook.SheetNames || [];
       if (!names.length) throw new Error('That workbook does not contain any readable sheets.');
       $('sheetSelect').innerHTML = names.map(name => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join('');
-      if (names.length > 1) $('sheetChooser').classList.remove('hidden');
+      $('sheetChooser').classList.toggle('hidden', names.length <= 1);
       $('parseFileBtn').textContent = names.length > 1 ? 'Use selected sheet' : 'Use Excel file';
       $('parseFileBtn').disabled = false;
+      $('step1Status').textContent = names.length > 1
+        ? `Workbook loaded: ${selectedFile.name}. ${names.length} worksheets found — choose one below.`
+        : `Workbook loaded: ${selectedFile.name}.`;
+      $('step1Status').className = 'status good';
     } catch (err) {
       console.error(err);
+      selectedFileKind = null;
       resetWorkbookSelection();
       $('parseFileBtn').textContent = 'Use file';
       $('step1Status').textContent = err?.message || 'I could not read that Excel workbook.';
@@ -224,12 +253,17 @@
   $('parseFileBtn').addEventListener('click', async () => {
     if (!selectedFile) return;
     try {
-      if (isExcelFile(selectedFile)) {
+      selectedFileKind = selectedFileKind || await detectFileKind(selectedFile);
+      if (selectedFileKind === 'excel') {
         if (!pendingWorkbook) pendingWorkbook = await loadExcelWorkbook(selectedFile);
         const sheetName = $('sheetSelect').value || pendingWorkbook.SheetNames?.[0];
         if (!sheetName) throw new Error('Choose a sheet to use.');
         ingestWorkbookSheet(pendingWorkbook, sheetName, selectedFile.name);
       } else {
+        // Never decode a ZIP/OLE workbook as text. Re-check the signature here in
+        // case browser-provided file metadata was incomplete or misleading.
+        const finalKind = await detectFileKind(selectedFile);
+        if (finalKind === 'excel') throw new Error('This looks like an Excel workbook, but the Excel reader was not initialized. Please choose the file again.');
         ingest(parseDelimited(await selectedFile.text()), selectedFile.name);
       }
     } catch (err) {

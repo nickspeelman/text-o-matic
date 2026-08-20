@@ -1,4 +1,4 @@
-const APP_VERSION = '0.1.9';
+const APP_VERSION = '0.1.10';
 const CACHE_NAME = `text-o-matic-v${APP_VERSION}`;
 const CORE_ASSETS = [
   './',
@@ -27,22 +27,21 @@ self.addEventListener('fetch', event => {
   const sameOrigin = requestUrl.origin === self.location.origin;
 
   if (sameOrigin) {
+    // Network-first for our own app shell. This prevents an older service worker
+    // from serving stale HTML/JS while a newer deployment is already available.
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        const network = fetch(event.request).then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        }).catch(() => cached);
-        return cached || network;
-      })
+      fetch(event.request, { cache: 'no-store' }).then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
     );
     return;
   }
 
-  // Runtime-cache the pinned QR-code library after it has been fetched once.
+  // Runtime-cache pinned third-party libraries after the first successful fetch.
   if (
     (requestUrl.hostname === 'cdn.jsdelivr.net' && requestUrl.pathname.includes('/qrcodejs@1.0.0/')) ||
     (requestUrl.hostname === 'cdn.sheetjs.com' && requestUrl.pathname.includes('/xlsx-0.20.3/'))
