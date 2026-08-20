@@ -1,15 +1,14 @@
-# Text-o-Matic v0.1.6
+# Text-o-Matic v0.1.7
 
 A static, client-side web app for preparing personalized SMS messages from pasted data or CSV files.
 
-## v0.1.6 changes
 
-- Revised privacy language to explain that contact/message data is processed locally and is never uploaded to Text-o-Matic or sent to a server.
-- QR-transfer copy now explains that data is encoded into the QR code and moved between devices without being uploaded to or exposed on the internet.
-- Added a warning to treat transfer QR codes like the contact list itself and not share or save them.
-- Incoming transfer payloads are removed from the current URL immediately after they are decoded.
-- `service-worker.js` is now the single source of truth for the app version. Update only `APP_VERSION` there; the visible footer and Help version read it automatically.
-- Bumped the build to `v0.1.6`.
+## v0.1.7 changes
+
+- Added Cloudflare Web Analytics using the site token supplied for Text-o-Matic.
+- Analytics is limited to basic site-usage/performance measurement; imported phone numbers, names, merge-field values, and message text are not intentionally sent to analytics.
+- Updated user-facing privacy copy to clearly distinguish local contact/message processing from basic website analytics.
+- Bumped the single-source service-worker version to `0.1.7`.
 
 ## Core features
 
@@ -30,7 +29,7 @@ A static, client-side web app for preparing personalized SMS messages from paste
 
 ## Privacy model
 
-Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. The app does not upload that contact/message payload to Text-o-Matic or send it over the internet.
+Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic and is not intentionally sent to Cloudflare Web Analytics. Cloudflare Web Analytics is used only for basic aggregate site-usage and performance measurement.
 
 For QR handoff, prepared recipient/message data is encoded directly into the QR code. The receiving browser reads the encoded payload from the QR URL fragment and reconstructs the list locally. URL fragments are not included in the normal HTTP request for the page.
 

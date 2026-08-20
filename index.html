@@ -193,7 +193,7 @@
     </main>
 
     <footer>
-      <span><strong>Private by design:</strong> your data is processed locally and never uploaded to Text-o-Matic. <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">Issues or comments?</a></span>
+      <span><strong>Private by design:</strong> contact and message data stays on your devices. <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">Issues or comments?</a></span>
       <span class="version" data-app-version>v…</span>
     </footer>
   </div>
@@ -215,7 +215,7 @@
         <li>Review missing data and customize fallback messages when needed.</li>
         <li>Text on this device, or transfer the prepared list with QR codes.</li>
       </ol>
-      <div class="privacy-note"><strong>Your data stays private.</strong> Text-o-Matic processes your phone numbers, names, merge fields, and messages entirely in your browser. They are never uploaded to Text-o-Matic or sent to a server. If you use QR transfer, your prepared contact and message data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.</div>
+      <div class="privacy-note"><strong>Your contact and message data stays private.</strong> Text-o-Matic processes phone numbers, names, merge fields, and message text entirely in your browser. That information is never uploaded to Text-o-Matic or sent to our analytics service. If you use QR transfer, the prepared contact and message data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.<br><br><strong>Basic usage analytics:</strong> Text-o-Matic uses Cloudflare Web Analytics to tell us whether the site is being used and how it performs. This provides aggregate information such as visits, page views, and performance metrics; it does not receive your imported contacts, merge-field values, or message text.</div>
       <p class="help-contact">Questions, issues, or comments? <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">nick@nickspeelman.com</a></p>
       <label class="check-row"><input id="hideHelpCheckbox" type="checkbox"> Don't show these instructions automatically in the future</label>
       <div class="dialog-actions"><button id="helpDoneBtn" class="primary" value="default">Get started</button></div>
@@ -262,5 +262,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a282c271271a4e3aa423df8c49e31fb4"}'></script>
+  <!-- End Cloudflare Web Analytics -->
 </body>
 </html>
