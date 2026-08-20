@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#315efb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#171b20" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="Prepare personalized text messages from a pasted list, CSV, or Excel workbook, review merge-field issues, and open each message in your SMS app. Contact and message data stays on your device.">
+  <meta name="description" content="Prepare personalized text messages from a pasted list, CSV, or Excel workbook, review merge-field issues, and open each message in SMS or WhatsApp. Contact and message data stays on your device.">
   <meta name="robots" content="index,follow">
   <meta name="application-name" content="Text-o-Matic">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,7 @@
   <meta name="twitter:title" content="Text-o-Matic — Personalized texts from a list">
   <meta name="twitter:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
 
-  <title>Text-o-Matic — Personalized SMS Messages from Lists, CSV, or Excel</title>
+  <title>Text-o-Matic — Personalized Messages from Lists, CSV, or Excel</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
@@ -33,7 +33,7 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Text-o-Matic",
-    "description": "A browser-based tool for preparing personalized SMS messages from pasted lists, CSV files, and Excel workbooks.",
+    "description": "A browser-based tool for preparing personalized SMS or WhatsApp messages from pasted lists, CSV files, and Excel workbooks.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Any",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
@@ -171,16 +171,27 @@
           </div>
         </div>
 
-        <div id="textChoice" class="choice-grid">
-          <div class="card emphasis">
-            <h3>Use this device</h3>
-            <p>Open each prepared message in this device's SMS app.</p>
-            <button id="startHereBtn" class="primary" type="button">Start texting</button>
+        <div id="textChoice">
+          <div class="delivery-app-picker">
+            <label for="deliveryAppSelect">Messaging app</label>
+            <select id="deliveryAppSelect">
+              <option value="sms">SMS / default texting app</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+            <p id="deliveryAppHelp" class="muted"></p>
           </div>
-          <div class="card">
-            <h3>Transfer to another device</h3>
-            <p id="qrEstimate">Create one or more QR codes that reconstruct the prepared list on the other device.</p>
-            <button id="prepareQrBtn" class="secondary" type="button">Prepare QR transfer</button>
+
+          <div class="choice-grid">
+            <div class="card emphasis">
+              <h3>Use this device</h3>
+              <p id="localSendDescription">Open each prepared message in this device's SMS app.</p>
+              <button id="startHereBtn" class="primary" type="button">Start texting</button>
+            </div>
+            <div class="card">
+              <h3>Transfer to another device</h3>
+              <p id="qrEstimate">Create one or more QR codes that reconstruct the prepared list on the other device.</p>
+              <button id="prepareQrBtn" class="secondary" type="button">Prepare QR transfer</button>
+            </div>
           </div>
         </div>
 
@@ -217,7 +228,7 @@
         <li>Choose the phone column, the name shown for each recipient, merge fields, and ignored columns.</li>
         <li>Write a message using fields like <code>{{First Name}}</code>.</li>
         <li>Review missing data and customize fallback messages when needed.</li>
-        <li>Text on this device, or transfer the prepared list with QR codes.</li>
+        <li>Send with SMS or WhatsApp on this device, or transfer the prepared list and messaging-app choice with QR codes.</li>
       </ol>
       <div class="privacy-note"><strong>Your contact and message data stays private.</strong> Your imported contacts and message content are processed locally in your browser and are not uploaded to Text-o-Matic or Cloudflare Analytics. QR transfers move the prepared data directly between your devices without uploading it to the internet.<br><br><button id="privacyFromHelpBtn" class="link-button" type="button">Privacy details</button></div>
       <p class="help-contact">Questions, issues, or comments? <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">nick@nickspeelman.com</a></p>
@@ -238,6 +249,7 @@
       </div>
       <p><strong>Your contact and message data stays on your devices.</strong> Text-o-Matic processes phone numbers, names, merge fields, and message content entirely in your browser. That information is not uploaded to Text-o-Matic and is not sent to Cloudflare Web Analytics.</p>
       <p><strong>QR transfers are device-to-device.</strong> If you transfer a prepared list with a QR code, the contact and message data is encoded directly into the QR code. The receiving device reads that data from the code and reconstructs the list locally, without uploading the list to the internet.</p>
+      <p><strong>Opening a message hands it to the messaging service you selected.</strong> SMS links are passed to your device's texting app. WhatsApp links include the recipient phone number and prepared message so WhatsApp can open the conversation with the text filled in. From that point, WhatsApp's own service and privacy practices apply.</p>
       <p><strong>Keep transfer QR codes private.</strong> A transfer QR code contains the prepared contact and message data. Treat it like the list itself and do not share or save it.</p>
       <p><strong>Basic usage analytics.</strong> Text-o-Matic uses Cloudflare Web Analytics so we can tell whether the site is being used and how it performs. It provides aggregate information such as visits, page views, and performance metrics. It does not receive your imported contacts, merge-field values, or message text, and Cloudflare Web Analytics does not use cookies or local storage for analytics.</p>
       <p><strong>Local browser storage.</strong> Text-o-Matic uses browser storage such as IndexedDB and local storage for app functions including preferences, usage counters, incomplete QR transfers, and other local state. This information remains in your browser unless you clear it.</p>

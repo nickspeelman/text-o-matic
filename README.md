@@ -1,7 +1,19 @@
-# Text-o-Matic v0.1.13
+# Text-o-Matic v2.0.0
 
-A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
+A static, client-side web app for preparing personalized SMS or WhatsApp messages from pasted data, CSV files, or Excel workbooks.
 
+
+## v2.0.0 changes
+
+- Added WhatsApp as a first-class messaging option alongside SMS / the device's default texting app.
+- Step 5 now asks which messaging app to use before choosing this device or a QR handoff.
+- WhatsApp uses the existing mapped phone-number column and opens a `wa.me` click-to-chat link with the prepared message filled in.
+- The selected messaging app is included in QR transfer payloads, so cross-device handoff preserves the intended send method.
+- The receiving device shows which messaging app was transferred and starts the same sequential recipient queue with that app.
+- Added a **Change app** control in the sequential sending view.
+- Generalized message-open usage counting while preserving previous SMS usage totals.
+- Updated privacy language to explain the boundary between Text-o-Matic's local processing and handing a recipient/message to WhatsApp.
+- Bumped the service-worker app version to `2.0.0`.
 
 ## v0.1.13 changes
 
@@ -32,7 +44,7 @@ A static, client-side web app for preparing personalized SMS messages from paste
 - Review screen that groups missing merge fields
 - Custom fallback templates for affected recipient groups
 - Exclude or leave missing fields blank
-- Continue texting on the current device via `sms:` links
+- Continue on the current device via SMS links or WhatsApp click-to-chat links
 - Client-side QR transfer, including multi-QR transfers for large lists
 - Receiving device accumulates QR chunks in IndexedDB
 - Local usage counters in IndexedDB
@@ -93,7 +105,7 @@ For QR handoff testing, the page must be reachable by the phone, such as a deplo
 2. Replace `DONATE_URL` near the top of `app.js` when you have a donation destination.
 3. Add the production canonical URL / `og:url` once the domain is known.
 4. Optionally add a 1200×630 social preview image and corresponding absolute meta tags.
-5. Test PWA installation and `sms:` link behavior on both iOS and Android.
+5. Test PWA installation plus SMS and WhatsApp launch behavior on both iOS and Android.
 
 ## Contact
 
