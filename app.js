@@ -1,7 +1,6 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.1';
   const DONATE_URL = '#'; // Replace with your donation URL before publishing.
   const QR_TARGET_URL_LENGTH = 1150;
   const DB_NAME = 'text-list-v0.1';
@@ -30,6 +29,23 @@
   const helpDialog = $('helpDialog');
   const customizeDialog = $('customizeDialog');
   const donateDialog = $('donateDialog');
+
+  async function loadDisplayedVersion() {
+    const targets = $$('[data-app-version]');
+    if (!targets.length) return;
+    try {
+      const response = await fetch('./service-worker.js', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const source = await response.text();
+      const match = source.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+      if (!match) throw new Error('APP_VERSION not found');
+      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${match[1]}` : match[1]; });
+    } catch (err) {
+      console.warn('Text-o-Matic could not read the app version from the service worker:', err);
+      targets.forEach(el => { el.textContent = el.classList.contains('version') ? 'v?' : '?'; });
+    }
+  }
+  loadDisplayedVersion();
 
   function openHelp() { if (!helpDialog.open) helpDialog.showModal(); }
   $('helpBtn').addEventListener('click', openHelp);
@@ -481,7 +497,8 @@
         <button id="qrNext" class="primary" type="button" ${idx === total - 1 ? 'disabled' : ''}>Next</button>
       </div>
       ${total >= 8 ? `<div class="transfer-status" style="margin-top:18px">This is a very large transfer and requires ${total} scans. You can continue, or return to Review and divide the list into smaller groups.</div>` : ''}
-      <p class="muted" style="margin-top:18px">The QR code contains prepared names, phone numbers, and messages. No upload is required.</p>
+      <div class="transfer-status" style="margin-top:18px"><strong>Keep this QR code private.</strong> It contains your prepared contact and message data. Treat it like the list itself and don't share or save it.</div>
+      <p class="muted" style="margin-top:12px">The data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.</p>
     </div>`;
     new QRCode($('qrcode'), { text:item.url, width:280, height:280, correctLevel:QRCode.CorrectLevel.M });
     $('qrPrev').addEventListener('click', () => { state.qrIndex--; renderQr(); });
@@ -492,7 +509,9 @@
     if (!location.hash.startsWith('#xfer=')) return false;
     try {
       const payload = await decodeTransferHash(location.hash);
-      if (!payload?.id || !Array.isArray(payload.r)) throw new Error('This QR code does not contain a valid Text List transfer.');
+      if (!payload?.id || !Array.isArray(payload.r)) throw new Error('This QR code does not contain a valid Text-o-Matic transfer.');
+      // Remove the encoded transfer payload from the current URL as soon as it has been read.
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
       document.querySelector('main').querySelectorAll('.step-panel').forEach(x => x.classList.add('hidden'));
       document.querySelector('.steps').classList.add('hidden');
       const host = $('incomingTransfer'); host.classList.remove('hidden');
@@ -591,7 +610,7 @@
       const milestone = milestones.filter(m => stats.smsLinksOpened >= m && (stats.donateMilestoneShown || 0) < m).pop();
       if (!milestone) return;
       stats.donateMilestoneShown = milestone; await idbSet('stats', stats);
-      $('donateTitle').textContent = `You've started more than ${milestone.toLocaleString()} texts with Text List!`;
+      $('donateTitle').textContent = `You've started more than ${milestone.toLocaleString()} texts with Text-o-Matic!`;
       $('donateText').textContent = 'If this tool has saved you time, consider making a small donation to help keep it available.';
       $('donateLink').href = DONATE_URL;
       donateDialog.showModal();
@@ -601,4 +620,12 @@
   $('donateClose').addEventListener('click', closeDonate); $('donateLater').addEventListener('click', closeDonate); $('donateLink').addEventListener('click', closeDonate);
 
   handleIncomingTransfer();
+
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(err => {
+        console.warn('Text-o-Matic service worker registration failed:', err);
+      });
+    });
+  }
 })();

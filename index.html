@@ -4,15 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Text List</title>
+  <meta name="theme-color" content="#315efb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#171b20" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Prepare personalized text messages from a pasted list or CSV, review merge-field issues, and open each message in your SMS app. Contact and message data stays on your device.">
+  <meta name="robots" content="index,follow">
+  <meta name="application-name" content="Text-o-Matic">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Text-o-Matic">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Text-o-Matic">
+  <meta property="og:title" content="Text-o-Matic — Personalized texts from a list">
+  <meta property="og:description" content="Turn a pasted list or CSV into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Text-o-Matic — Personalized texts from a list">
+  <meta name="twitter:description" content="Turn a pasted list or CSV into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+
+  <title>Text-o-Matic — Personalized SMS Messages from CSV or Lists</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Text-o-Matic",
+    "description": "A browser-based tool for preparing personalized SMS messages from pasted lists or CSV files.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <h1>Text List</h1>
-        <p class="tagline">Prepare personalized texts from a list. Your contact data stays in your browser.</p>
+        <h1>Text-o-Matic</h1>
+        <p class="tagline">Prepare personalized texts from a list. Your contact and message data stays on your device.</p>
       </div>
       <button id="helpBtn" class="link-button" type="button">Help</button>
     </header>
@@ -159,8 +192,8 @@
     </main>
 
     <footer>
-      <span>Your list and message content are processed locally.</span>
-      <span class="version">v0.1</span>
+      <span><strong>Private by design:</strong> your data is processed locally and never uploaded to Text-o-Matic. <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">Issues or comments?</a></span>
+      <span class="version" data-app-version>v…</span>
     </footer>
   </div>
 
@@ -169,7 +202,7 @@
       <div class="dialog-head">
         <div>
           <p class="eyebrow">How it works</p>
-          <h2>Welcome to Text List</h2>
+          <h2>Welcome to Text-o-Matic</h2>
         </div>
         <button class="icon-btn" value="cancel" aria-label="Close">×</button>
       </div>
@@ -180,10 +213,11 @@
         <li>Review missing data and customize fallback messages when needed.</li>
         <li>Text on this device, or transfer the prepared list with QR codes.</li>
       </ol>
-      <div class="privacy-note"><strong>Your contact list and message content stay in your browser.</strong> The app does not need a server to process them.</div>
+      <div class="privacy-note"><strong>Your data stays private.</strong> Text-o-Matic processes your phone numbers, names, merge fields, and messages entirely in your browser. They are never uploaded to Text-o-Matic or sent to a server. If you use QR transfer, your prepared contact and message data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.</div>
+      <p class="help-contact">Questions, issues, or comments? <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">nick@nickspeelman.com</a></p>
       <label class="check-row"><input id="hideHelpCheckbox" type="checkbox"> Don't show these instructions automatically in the future</label>
       <div class="dialog-actions"><button id="helpDoneBtn" class="primary" value="default">Get started</button></div>
-      <p class="dialog-version">Version 0.1</p>
+      <p class="dialog-version">Version <span data-app-version>…</span></p>
     </form>
   </dialog>
 
