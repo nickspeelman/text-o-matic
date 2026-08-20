@@ -194,7 +194,7 @@
   }
 
   async function loadExcelWorkbook(file) {
-    if (!globalThis.XLSX) throw new Error('The Excel reader could not be loaded. Check your internet connection and try again.');
+    if (!globalThis.XLSX) throw new Error('The Excel reader is unavailable. Reload Text-o-Matic while online once so it can finish preparing for offline use.');
     const buffer = await file.arrayBuffer();
     return globalThis.XLSX.read(buffer, { type: 'array' });
   }
@@ -676,7 +676,7 @@
   async function prepareQrTransfer() {
     $('prepareQrBtn').disabled = true; $('prepareQrBtn').textContent = 'Preparing…';
     try {
-      if (typeof QRCode === 'undefined') throw new Error('The QR-code library did not load. Check your internet connection and reload the page.');
+      if (typeof QRCode === 'undefined') throw new Error('The QR-code generator is unavailable. Reload Text-o-Matic while online once so it can finish preparing for offline use.');
       state.qrChunks = await chunkRecipients(state.prepared);
       state.qrIndex = 0;
       $('textChoice').classList.add('hidden'); $('textingView').classList.add('hidden'); $('qrView').classList.remove('hidden');
@@ -927,11 +927,48 @@
 
   handleIncomingTransfer();
 
+  function setOfflineStatus(text, title) {
+    const el = $('offlineStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.title = title || text;
+  }
+
+  function requestOfflineStatus() {
+    const controller = navigator.serviceWorker?.controller;
+    if (!controller) {
+      setOfflineStatus('Preparing offline…', 'Text-o-Matic is installing its offline files. Reload once if this message persists.');
+      return;
+    }
+    controller.postMessage({ type:'CHECK_OFFLINE_READY' });
+  }
+
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js').catch(err => {
-        console.warn('Text-o-Matic service worker registration failed:', err);
-      });
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type !== 'OFFLINE_READY_STATUS') return;
+      if (event.data.ready) {
+        setOfflineStatus('Offline ready', 'Text-o-Matic has cached the app, Excel reader, and QR generator for offline use.');
+      } else if (navigator.onLine) {
+        setOfflineStatus('Preparing offline…', 'Keep Text-o-Matic open briefly while it caches the files needed for offline use.');
+      } else {
+        setOfflineStatus('Offline setup incomplete', 'Reconnect once and reload Text-o-Matic to finish preparing it for offline use.');
+      }
     });
+    window.addEventListener('online', requestOfflineStatus);
+    window.addEventListener('offline', requestOfflineStatus);
+    navigator.serviceWorker.addEventListener('controllerchange', () => setTimeout(requestOfflineStatus, 150));
+    window.addEventListener('load', async () => {
+      try {
+        await navigator.serviceWorker.register('./service-worker.js');
+        await navigator.serviceWorker.ready;
+        requestOfflineStatus();
+        setTimeout(requestOfflineStatus, 1500);
+      } catch (err) {
+        console.warn('Text-o-Matic service worker registration failed:', err);
+        setOfflineStatus('Offline unavailable', 'The browser could not install Text-o-Matic for offline use.');
+      }
+    });
+  } else {
+    setOfflineStatus('Offline unavailable', 'Offline/PWA support requires Text-o-Matic to be served over HTTPS or localhost.');
   }
 })();

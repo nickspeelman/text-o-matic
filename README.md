@@ -1,6 +1,18 @@
-# Text-o-Matic v0.1.12
+# Text-o-Matic v0.1.13
 
 A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
+
+
+## v0.1.13 changes
+
+- Added an **Offline ready** status in the footer.
+- The service worker now proactively caches the pinned QR-code and SheetJS libraries while online, in addition to the core app shell.
+- Once the footer reports **Offline ready**, CSV/Excel import, message preparation, QR generation, QR reconstruction, and local state are available without an internet connection.
+- Cloudflare Web Analytics remains optional to operation and simply does not report while offline.
+- Updated offline error messages to explain how to finish offline setup.
+- Bumped the single-source service-worker version to `0.1.13`.
+
+**Important:** the two third-party libraries are still fetched from their pinned upstream CDNs during initial online setup and then stored in the service-worker cache. They are not yet physically bundled into this ZIP. The readiness indicator only reports success after those files are actually cached.
 
 
 ## v0.1.12 changes
