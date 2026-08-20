@@ -1,4 +1,4 @@
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.2.3';
 const CACHE_NAME = `text-o-matic-v${APP_VERSION}`;
 const CORE_ASSETS = [
   './',
