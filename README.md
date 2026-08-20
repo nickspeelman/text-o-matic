@@ -1,14 +1,14 @@
-# Text-o-Matic v0.1.11
+# Text-o-Matic v0.1.12
 
 A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
 
 
-## v0.1.11 changes
+## v0.1.12 changes
 
 - Added a live display-name preview on the column-mapping screen.
 - Added an ordered display-name field list with explicit **↑ Earlier** and **↓ Later** controls.
 - Display-name order is preserved independently of the spreadsheet column order and is used everywhere recipients are labeled.
-- Bumped the single-source service-worker version to `0.1.11`.
+- Bumped the single-source service-worker version to `0.1.12`.
 
 ## Core features
 
