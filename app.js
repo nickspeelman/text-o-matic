@@ -153,7 +153,7 @@
             </td>
           </tr>`).join('')}</tbody>
       </table>
-      <p class="mapping-note">You can choose multiple display-name columns. They will be joined with spaces.</p>`;
+      <div class="mapping-note"><strong>What is “Display name”?</strong> This is what Text-o-Matic will call the recipient on the texting screen. For example, choosing <em>First Name</em> and <em>Last Name</em> will show “Jane Smith.” You can choose more than one display-name column; they will be joined with spaces. Display-name columns can still be used as merge fields in your message.</div>`;
     $$('.mapping-select').forEach(sel => {
       if (sel.value === 'merge' && state.mergeCols.includes(sel.dataset.header)) sel.value = 'merge';
       sel.addEventListener('change', syncMappingsFromUI);
@@ -238,10 +238,39 @@
   }
   function issueKey(missing) { return missing.slice().sort().join('|||'); }
 
+  function duplicateKey(phone) { return `__duplicate__${phone}`; }
+
+  function duplicateGroups() {
+    const byPhone = new Map();
+    state.rows.forEach((row, idx) => {
+      const phone = normalizePhone(row[state.phoneCol]);
+      if (!phone) return;
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone).push(idx);
+    });
+    return [...byPhone.entries()]
+      .filter(([, indexes]) => indexes.length > 1)
+      .map(([phone, indexes]) => ({ phone, indexes, key: duplicateKey(phone) }));
+  }
+
+  function includedIndexesAfterDedupe() {
+    const duplicates = duplicateGroups();
+    const excluded = new Set();
+    duplicates.forEach(group => {
+      const rule = state.issueRules[group.key];
+      if (rule?.type === 'keepAll') return;
+      group.indexes.slice(1).forEach(idx => excluded.add(idx));
+    });
+    return new Set(state.rows.map((_, idx) => idx).filter(idx => !excluded.has(idx)));
+  }
+
   function analyze() {
     const problems = new Map();
     let ready = 0, missingPhone = [];
+    const duplicates = duplicateGroups();
+    const included = includedIndexesAfterDedupe();
     state.rows.forEach((row, idx) => {
+      if (!included.has(idx)) return;
       const phone = normalizePhone(row[state.phoneCol]);
       if (!phone) { missingPhone.push(idx); return; }
       const missing = missingFieldsFor(row, state.template);
@@ -250,7 +279,8 @@
       if (!problems.has(key)) problems.set(key, { key, fields: missing, indexes: [] });
       problems.get(key).indexes.push(idx);
     });
-    return { ready, missingPhone, problems: [...problems.values()] };
+    const duplicatesRemoved = duplicates.reduce((n, g) => n + (state.issueRules[g.key]?.type === 'keepAll' ? 0 : g.indexes.length - 1), 0);
+    return { ready, missingPhone, problems: [...problems.values()], duplicates, duplicatesRemoved };
   }
 
   function buildReview() {
@@ -261,8 +291,10 @@
     $('reviewSummary').innerHTML = `
       <div class="summary-card good"><span>Ready</span><strong>${analysis.ready + resolvedIncludedCount(analysis)}</strong></div>
       <div class="summary-card warn"><span>Need attention</span><strong>${need}</strong></div>
+      <div class="summary-card"><span>Duplicates removed</span><strong>${analysis.duplicatesRemoved}</strong></div>
       <div class="summary-card"><span>Total rows</span><strong>${state.rows.length}</strong></div>`;
     const issues = [];
+    analysis.duplicates.forEach(g => issues.push(renderDuplicateIssue(g)));
     if (analysis.missingPhone.length) issues.push(renderPhoneIssue(analysis.missingPhone));
     analysis.problems.forEach(g => issues.push(renderMergeIssue(g)));
     $('issueList').innerHTML = issues.join('') || '<div class="status good">Everything looks ready.</div>';
@@ -279,6 +311,18 @@
       if (rule && rule.type !== 'exclude') n += g.indexes.length;
     });
     return n;
+  }
+
+  function renderDuplicateIssue(group) {
+    const keepAll = state.issueRules[group.key]?.type === 'keepAll';
+    const first = state.rows[group.indexes[0]];
+    const laterNames = group.indexes.slice(1).map(i => displayName(state.rows[i])).join(', ');
+    return `<div class="issue ${keepAll ? '' : 'resolved'}">
+      <div class="issue-head"><div><span class="pill">Duplicate phone</span><h3>${group.indexes.length} rows use ${escapeHtml(formatPhoneForDisplay(group.phone))}</h3><p class="muted">${keepAll ? 'All of these rows will be kept.' : `Text-o-Matic will keep the first row (${escapeHtml(displayName(first))}) and exclude ${group.indexes.length - 1} later ${group.indexes.length === 2 ? 'duplicate' : 'duplicates'}${laterNames ? ` (${escapeHtml(laterNames)})` : ''}.`}</p></div>${keepAll ? '' : '<strong>Deduped</strong>'}</div>
+      <div class="issue-actions">
+        ${keepAll ? `<button class="secondary dedupe-first" data-key="${escapeAttr(group.key)}" type="button">Keep first only</button>` : `<button class="secondary keep-duplicates" data-key="${escapeAttr(group.key)}" type="button">Keep all ${group.indexes.length}</button>`}
+      </div>
+    </div>`;
   }
 
   function renderPhoneIssue(indexes) {
@@ -308,6 +352,8 @@
   }
 
   function attachIssueHandlers(analysis) {
+    $$('.keep-duplicates').forEach(b => b.addEventListener('click', () => { state.issueRules[b.dataset.key] = { type:'keepAll' }; buildReview(); }));
+    $$('.dedupe-first').forEach(b => b.addEventListener('click', () => { delete state.issueRules[b.dataset.key]; buildReview(); }));
     $$('.exclude-phone').forEach(b => b.addEventListener('click', () => { state.issueRules.__missingPhone = 'exclude'; buildReview(); }));
     $$('.undo-rule').forEach(b => b.addEventListener('click', () => { delete state.issueRules[b.dataset.key]; buildReview(); }));
     $$('.blank-rule').forEach(b => b.addEventListener('click', () => { state.issueRules[b.dataset.key] = { type:'blank' }; buildReview(); }));
@@ -339,7 +385,9 @@
 
   function buildPrepared() {
     const list = [];
+    const included = includedIndexesAfterDedupe();
     state.rows.forEach((row, idx) => {
+      if (!included.has(idx)) return;
       const phone = normalizePhone(row[state.phoneCol]);
       if (!phone) return;
       const missing = missingFieldsFor(row, state.template);
@@ -551,15 +599,69 @@
   function normalizePhone(value) {
     const raw = String(value ?? '').trim();
     if (!raw) return '';
-    const plus = raw.startsWith('+');
-    const digits = raw.replace(/\D/g, '');
+    let digits = raw.replace(/\D/g, '');
     if (digits.length < 7) return '';
-    return (plus ? '+' : '') + digits;
+    // Treat 10-digit North American numbers and the same number with a leading 1 as identical.
+    if (digits.length === 10) digits = `1${digits}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+    return raw.startsWith('+') ? `+${digits}` : digits;
+  }
+  function formatPhoneForDisplay(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('1')) return `+1 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+    return phone;
   }
   function smsHref(phone, message) {
     const sep = /iPad|iPhone|iPod/.test(navigator.userAgent) ? '&' : '?';
     return `sms:${phone}${sep}body=${encodeURIComponent(message)}`;
   }
+
+  function resetCurrentSession() {
+    state.rows = [];
+    state.headers = [];
+    state.sourceName = '';
+    state.phoneCol = '';
+    state.displayCols = [];
+    state.mergeCols = [];
+    state.ignoredCols = [];
+    state.template = '';
+    state.previewIndex = 0;
+    state.issueRules = {};
+    state.prepared = [];
+    state.qrChunks = [];
+    state.qrIndex = 0;
+    state.textIndex = 0;
+
+    selectedFile = null;
+    $('pasteInput').value = '';
+    $('csvFile').value = '';
+    $('fileName').textContent = 'No file selected';
+    $('parseFileBtn').disabled = true;
+    $('step1Status').textContent = '';
+    $('step1Status').className = 'status';
+    $('mappingArea').innerHTML = '';
+    $('messageTemplate').value = '';
+    $('mergeChips').innerHTML = '';
+    $('previewName').textContent = '';
+    $('previewCounter').textContent = '';
+    $('messagePreview').textContent = '';
+    $('reviewSummary').innerHTML = '';
+    $('issueList').innerHTML = '';
+    $('readyPreview').innerHTML = '';
+    $('textChoice').classList.remove('hidden');
+    $('textingView').classList.add('hidden');
+    $('textingView').innerHTML = '';
+    $('qrView').classList.add('hidden');
+    $('qrView').innerHTML = '';
+
+    $$('.step').forEach((button, idx) => {
+      button.disabled = idx !== 0;
+      button.classList.remove('complete', 'active');
+    });
+    showStep(1);
+  }
+
+  $('finishBtn').addEventListener('click', resetCurrentSession);
 
   function showStep(n) {
     $$('.step-panel').forEach(p => p.classList.toggle('hidden', Number(p.dataset.panel) !== n));
