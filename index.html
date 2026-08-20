@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#315efb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#171b20" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="Prepare personalized text messages from a pasted list or CSV, review merge-field issues, and open each message in your SMS app. Contact and message data stays on your device.">
+  <meta name="description" content="Prepare personalized text messages from a pasted list, CSV, or Excel workbook, review merge-field issues, and open each message in your SMS app. Contact and message data stays on your device.">
   <meta name="robots" content="index,follow">
   <meta name="application-name" content="Text-o-Matic">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,12 +16,12 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Text-o-Matic">
   <meta property="og:title" content="Text-o-Matic — Personalized texts from a list">
-  <meta property="og:description" content="Turn a pasted list or CSV into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+  <meta property="og:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Text-o-Matic — Personalized texts from a list">
-  <meta name="twitter:description" content="Turn a pasted list or CSV into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+  <meta name="twitter:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
 
-  <title>Text-o-Matic — Personalized SMS Messages from CSV or Lists</title>
+  <title>Text-o-Matic — Personalized SMS Messages from Lists, CSV, or Excel</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
@@ -33,7 +33,7 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Text-o-Matic",
-    "description": "A browser-based tool for preparing personalized SMS messages from pasted lists or CSV files.",
+    "description": "A browser-based tool for preparing personalized SMS messages from pasted lists, CSV files, and Excel workbooks.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Any",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
@@ -64,7 +64,7 @@
           <div>
             <p class="eyebrow">Step 1</p>
             <h2>Your list</h2>
-            <p>Paste phone numbers or tabular data, or upload a CSV file.</p>
+            <p>Paste phone numbers or tabular data, or upload a CSV or Excel file.</p>
           </div>
         </div>
 
@@ -76,14 +76,18 @@
             <button id="parsePasteBtn" class="primary" type="button">Use pasted list</button>
           </div>
           <div class="card">
-            <h3>Upload CSV</h3>
-            <p class="muted">The file is read locally in your browser.</p>
+            <h3>Upload CSV or Excel</h3>
+            <p class="muted">CSV, .xls, and .xlsx files are read locally in your browser.</p>
             <label class="file-drop" for="csvFile">
-              <strong>Choose a CSV file</strong>
+              <strong>Choose a CSV or Excel file</strong>
               <span id="fileName">No file selected</span>
-              <input id="csvFile" type="file" accept=".csv,text/csv">
+              <input id="csvFile" type="file" accept=".csv,text/csv,.xls,application/vnd.ms-excel,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
             </label>
-            <button id="parseFileBtn" class="primary" type="button" disabled>Use CSV</button>
+            <div id="sheetChooser" class="hidden">
+              <label for="sheetSelect">Which sheet should we use?</label>
+              <select id="sheetSelect"></select>
+            </div>
+            <button id="parseFileBtn" class="primary" type="button" disabled>Use file</button>
           </div>
         </div>
         <div id="step1Status" class="status" aria-live="polite"></div>
@@ -209,7 +213,7 @@
       </div>
       <p><strong>Text-o-Matic turns a list of phone numbers into a tap-through queue of personalized text messages.</strong> Write your message once, add names or other details with merge fields, and Text-o-Matic prepares each message for you. No more copying and pasting the same message over and over again.</p>
       <ol class="help-list">
-        <li>Add your list by pasting phone numbers or uploading a CSV.</li>
+        <li>Add your list by pasting phone numbers or uploading a CSV or Excel workbook.</li>
         <li>Choose the phone column, the name shown for each recipient, merge fields, and ignored columns.</li>
         <li>Write a message using fields like <code>{{First Name}}</code>.</li>
         <li>Review missing data and customize fallback messages when needed.</li>
@@ -281,6 +285,7 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a282c271271a4e3aa423df8c49e31fb4"}'></script>

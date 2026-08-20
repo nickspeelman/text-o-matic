@@ -130,15 +130,113 @@
   }
 
   $('parsePasteBtn').addEventListener('click', () => ingest(parseDelimited($('pasteInput').value), 'Pasted list'));
+
+  function parseArrayRows(records) {
+    const cleaned = records
+      .map(row => Array.isArray(row) ? row.map(value => String(value ?? '').trim()) : [])
+      .filter(row => row.some(value => value !== ''));
+    if (!cleaned.length) return { headers: [], rows: [] };
+
+    if (cleaned[0].length === 1) {
+      const first = cleaned[0][0] || '';
+      const looksLikeHeader = /phone|cell|mobile|sms|text/i.test(first) && !/\d/.test(first);
+      const dataRows = looksLikeHeader ? cleaned.slice(1) : cleaned;
+      return {
+        headers: ['Phone'],
+        rows: dataRows.map(row => ({ Phone: row[0] || '' }))
+      };
+    }
+
+    let headers = cleaned[0].map((value, index) => value || `Column ${index + 1}`);
+    const looksHeader = headers.some(h => /phone|cell|mobile|name|first|last|email|event|time|date/i.test(h));
+    const dataRows = looksHeader ? cleaned.slice(1) : cleaned;
+    if (!looksHeader) headers = headers.map((_, index) => `Column ${index + 1}`);
+
+    const rows = dataRows.map(values => {
+      const row = {};
+      headers.forEach((header, index) => { row[header] = String(values[index] ?? '').trim(); });
+      return row;
+    });
+    return { headers, rows };
+  }
+
   let selectedFile = null;
-  $('csvFile').addEventListener('change', e => {
+  let pendingWorkbook = null;
+
+  function isExcelFile(file) {
+    return /\.(xlsx|xls)$/i.test(file?.name || '');
+  }
+
+  function resetWorkbookSelection() {
+    pendingWorkbook = null;
+    $('sheetSelect').innerHTML = '';
+    $('sheetChooser').classList.add('hidden');
+  }
+
+  async function loadExcelWorkbook(file) {
+    if (!globalThis.XLSX) throw new Error('The Excel reader could not be loaded. Check your internet connection and try again.');
+    const buffer = await file.arrayBuffer();
+    return globalThis.XLSX.read(buffer, { type: 'array' });
+  }
+
+  function ingestWorkbookSheet(workbook, sheetName, fileName) {
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) throw new Error(`Could not read the sheet “${sheetName}”.`);
+    const records = globalThis.XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      raw: false,
+      defval: '',
+      blankrows: false
+    });
+    ingest(parseArrayRows(records), `${fileName} — ${sheetName}`);
+  }
+
+  $('csvFile').addEventListener('change', async e => {
     selectedFile = e.target.files?.[0] || null;
+    resetWorkbookSelection();
     $('fileName').textContent = selectedFile ? selectedFile.name : 'No file selected';
     $('parseFileBtn').disabled = !selectedFile;
+    $('parseFileBtn').textContent = 'Use file';
+    $('step1Status').textContent = '';
+    $('step1Status').className = 'status';
+
+    if (!selectedFile || !isExcelFile(selectedFile)) return;
+
+    $('parseFileBtn').disabled = true;
+    $('parseFileBtn').textContent = 'Reading workbook…';
+    try {
+      pendingWorkbook = await loadExcelWorkbook(selectedFile);
+      const names = pendingWorkbook.SheetNames || [];
+      if (!names.length) throw new Error('That workbook does not contain any readable sheets.');
+      $('sheetSelect').innerHTML = names.map(name => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join('');
+      if (names.length > 1) $('sheetChooser').classList.remove('hidden');
+      $('parseFileBtn').textContent = names.length > 1 ? 'Use selected sheet' : 'Use Excel file';
+      $('parseFileBtn').disabled = false;
+    } catch (err) {
+      console.error(err);
+      resetWorkbookSelection();
+      $('parseFileBtn').textContent = 'Use file';
+      $('step1Status').textContent = err?.message || 'I could not read that Excel workbook.';
+      $('step1Status').className = 'status bad';
+    }
   });
+
   $('parseFileBtn').addEventListener('click', async () => {
     if (!selectedFile) return;
-    ingest(parseDelimited(await selectedFile.text()), selectedFile.name);
+    try {
+      if (isExcelFile(selectedFile)) {
+        if (!pendingWorkbook) pendingWorkbook = await loadExcelWorkbook(selectedFile);
+        const sheetName = $('sheetSelect').value || pendingWorkbook.SheetNames?.[0];
+        if (!sheetName) throw new Error('Choose a sheet to use.');
+        ingestWorkbookSheet(pendingWorkbook, sheetName, selectedFile.name);
+      } else {
+        ingest(parseDelimited(await selectedFile.text()), selectedFile.name);
+      }
+    } catch (err) {
+      console.error(err);
+      $('step1Status').textContent = err?.message || 'I could not read that file.';
+      $('step1Status').className = 'status bad';
+    }
   });
 
   function buildMappingUI() {
@@ -664,7 +762,10 @@
     $('pasteInput').value = '';
     $('csvFile').value = '';
     $('fileName').textContent = 'No file selected';
+    $('parseFileBtn').textContent = 'Use file';
     $('parseFileBtn').disabled = true;
+    resetWorkbookSelection();
+    selectedFile = null;
     $('step1Status').textContent = '';
     $('step1Status').className = 'status';
     $('mappingArea').innerHTML = '';

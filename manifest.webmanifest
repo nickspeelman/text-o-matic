@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Text-o-Matic",
   "short_name": "Text-o-Matic",
-  "description": "Prepare personalized text messages from a pasted list or CSV, then open them one at a time in your SMS app.",
+  "description": "Prepare personalized text messages from a pasted list, CSV, or Excel workbook, then open them one at a time in your SMS app.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

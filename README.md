@@ -1,20 +1,21 @@
-# Text-o-Matic v0.1.8
+# Text-o-Matic v0.1.9
 
-A static, client-side web app for preparing personalized SMS messages from pasted data or CSV files.
+A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
 
 
-## v0.1.8 changes
+## v0.1.9 changes
 
-- Added Cloudflare Web Analytics using the site token supplied for Text-o-Matic.
-- Analytics is limited to basic site-usage/performance measurement; imported phone numbers, names, merge-field values, and message text are not intentionally sent to analytics.
-- Updated user-facing privacy copy to clearly distinguish local contact/message processing from basic website analytics.
-- Bumped the single-source service-worker version to `0.1.8`.
+- Added local import support for `.xls` and `.xlsx` workbooks in addition to CSV.
+- Multi-sheet Excel workbooks now show a sheet selector before import.
+- Excel rows feed into the same column-mapping, merge-field, dedupe, review, and texting workflow as CSV data.
+- Uses the full SheetJS Community Edition browser build (`0.20.3`) because legacy `.xls` support is not included in the mini build. The library code is fetched as a static browser asset; workbook contents are read locally and are not sent with that request.
+- Bumped the single-source service-worker version to `0.1.9`.
 
 ## Core features
 
 - First-run instructions with a "don't show again" preference
 - Five-step wizard: Your list → Columns → Message → Review → Text
-- Paste phone lists / CSV-like text or upload CSV
+- Paste phone lists / CSV-like text or upload CSV, `.xls`, or `.xlsx`
 - Column mapping for phone number, display name, merge fields, and ignored fields
 - `{{Merge Field}}` message templates with live previews
 - Review screen that groups missing merge fields
@@ -33,7 +34,7 @@ Text-o-Matic processes imported phone numbers, names, merge fields, and message 
 
 For QR handoff, prepared recipient/message data is encoded directly into the QR code. The receiving browser reads the encoded payload from the QR URL fragment and reconstructs the list locally. URL fragments are not included in the normal HTTP request for the page.
 
-The QR generator is currently loaded from the pinned `qrcodejs@1.0.0` file on jsDelivr. This means the browser makes a normal request to jsDelivr for that JavaScript asset; the imported contact/message data is not included in that request. The service worker runtime-caches the QR library after it has been fetched while the PWA is controlling the page.
+The QR generator is loaded from pinned `qrcodejs@1.0.0` on jsDelivr. Excel parsing uses the full SheetJS Community Edition browser build `0.20.3` from the SheetJS CDN. These are static JavaScript asset requests; imported contact/message/workbook data is not included in those requests. The service worker runtime-caches both libraries after they have been fetched while the PWA is controlling the page.
 
 ## PWA icons you need to add
 
@@ -67,7 +68,7 @@ The service worker precaches the core Text-o-Matic shell and runtime-caches the 
 ## Run locally
 
 ```powershell
-cd path\to\text_o_matic_v0_1_4
+cd path\to\text_o_matic_v0_1_9
 python -m http.server 8000
 ```
 

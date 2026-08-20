@@ -127,3 +127,6 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
   .preview-card, .texting-card .message-box { background:#13171b; }
   code { background:#2b3138; }
 }
+
+#sheetChooser { margin-top: 14px; }
+#sheetChooser label { display: block; margin-bottom: 6px; font-weight: 600; }
