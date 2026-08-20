@@ -1,14 +1,14 @@
-# Text-o-Matic v0.1.7
+# Text-o-Matic v0.1.8
 
 A static, client-side web app for preparing personalized SMS messages from pasted data or CSV files.
 
 
-## v0.1.7 changes
+## v0.1.8 changes
 
 - Added Cloudflare Web Analytics using the site token supplied for Text-o-Matic.
 - Analytics is limited to basic site-usage/performance measurement; imported phone numbers, names, merge-field values, and message text are not intentionally sent to analytics.
 - Updated user-facing privacy copy to clearly distinguish local contact/message processing from basic website analytics.
-- Bumped the single-source service-worker version to `0.1.7`.
+- Bumped the single-source service-worker version to `0.1.8`.
 
 ## Core features
 
@@ -93,3 +93,8 @@ Questions, issues, or comments: `nick@nickspeelman.com`
 - Duplicate recipients are detected by normalized phone number. The first row is kept by default and later duplicates are excluded, with an override in Review.
 - The column-mapping screen now explains what “Display name” controls.
 - The Finish button clears the current working list/message and returns to Step 1 while retaining local preferences, mappings, and usage statistics.
+
+
+## Privacy screen
+
+The Welcome/About dialog links to a dedicated Privacy screen explaining local contact/message processing, QR device-to-device transfer, Cloudflare Web Analytics, local browser storage, and the privacy contact address.

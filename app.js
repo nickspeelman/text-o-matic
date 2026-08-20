@@ -28,6 +28,7 @@
 
   const helpDialog = $('helpDialog');
   const customizeDialog = $('customizeDialog');
+  const privacyDialog = $('privacyDialog');
   const donateDialog = $('donateDialog');
 
   async function loadDisplayedVersion() {
@@ -52,6 +53,12 @@
   $('helpDoneBtn').addEventListener('click', () => {
     localStorage.setItem('textList.hideHelp', $('hideHelpCheckbox').checked ? '1' : '0');
   });
+  $('privacyFromHelpBtn').addEventListener('click', () => {
+    helpDialog.close();
+    if (!privacyDialog.open) privacyDialog.showModal();
+  });
+  $('privacyCloseBtn').addEventListener('click', () => privacyDialog.close());
+  $('privacyDoneBtn').addEventListener('click', () => privacyDialog.close());
   if (!location.hash.startsWith('#xfer=') && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
 
   function parseDelimited(text) {

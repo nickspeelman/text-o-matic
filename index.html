@@ -215,12 +215,32 @@
         <li>Review missing data and customize fallback messages when needed.</li>
         <li>Text on this device, or transfer the prepared list with QR codes.</li>
       </ol>
-      <div class="privacy-note"><strong>Your contact and message data stays private.</strong> Text-o-Matic processes phone numbers, names, merge fields, and message text entirely in your browser. That information is never uploaded to Text-o-Matic or sent to our analytics service. If you use QR transfer, the prepared contact and message data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.<br><br><strong>Basic usage analytics:</strong> Text-o-Matic uses Cloudflare Web Analytics to tell us whether the site is being used and how it performs. This provides aggregate information such as visits, page views, and performance metrics; it does not receive your imported contacts, merge-field values, or message text.</div>
+      <div class="privacy-note"><strong>Your contact and message data stays private.</strong> Your imported contacts and message content are processed locally in your browser and are not uploaded to Text-o-Matic or Cloudflare Analytics. QR transfers move the prepared data directly between your devices without uploading it to the internet.<br><br><button id="privacyFromHelpBtn" class="link-button" type="button">Privacy details</button></div>
       <p class="help-contact">Questions, issues, or comments? <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">nick@nickspeelman.com</a></p>
       <label class="check-row"><input id="hideHelpCheckbox" type="checkbox"> Don't show these instructions automatically in the future</label>
       <div class="dialog-actions"><button id="helpDoneBtn" class="primary" value="default">Get started</button></div>
       <p class="dialog-version">Version <span data-app-version>…</span></p>
     </form>
+  </dialog>
+
+  <dialog id="privacyDialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Privacy</p>
+          <h2>How Text-o-Matic handles your data</h2>
+        </div>
+        <button id="privacyCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <p><strong>Your contact and message data stays on your devices.</strong> Text-o-Matic processes phone numbers, names, merge fields, and message content entirely in your browser. That information is not uploaded to Text-o-Matic and is not sent to Cloudflare Web Analytics.</p>
+      <p><strong>QR transfers are device-to-device.</strong> If you transfer a prepared list with a QR code, the contact and message data is encoded directly into the QR code. The receiving device reads that data from the code and reconstructs the list locally, without uploading the list to the internet.</p>
+      <p><strong>Keep transfer QR codes private.</strong> A transfer QR code contains the prepared contact and message data. Treat it like the list itself and do not share or save it.</p>
+      <p><strong>Basic usage analytics.</strong> Text-o-Matic uses Cloudflare Web Analytics so we can tell whether the site is being used and how it performs. It provides aggregate information such as visits, page views, and performance metrics. It does not receive your imported contacts, merge-field values, or message text, and Cloudflare Web Analytics does not use cookies or local storage for analytics.</p>
+      <p><strong>Local browser storage.</strong> Text-o-Matic uses browser storage such as IndexedDB and local storage for app functions including preferences, usage counters, incomplete QR transfers, and other local state. This information remains in your browser unless you clear it.</p>
+      <p>Questions about privacy can be sent to <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20privacy">nick@nickspeelman.com</a>.</p>
+      <div class="dialog-actions"><button id="privacyDoneBtn" class="primary" type="button">Done</button></div>
+      <p class="dialog-version">Version <span data-app-version>…</span></p>
+    </div>
   </dialog>
 
   <dialog id="customizeDialog">
