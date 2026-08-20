@@ -153,3 +153,6 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
   .display-name-field { align-items: flex-start; flex-direction: column; }
   .display-name-move { width: 100%; justify-content: flex-start; }
 }
+
+.help-donate-link { color: inherit; opacity: .7; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.help-donate-link:hover, .help-donate-link:focus-visible { opacity: 1; }

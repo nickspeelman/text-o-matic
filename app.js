@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const DONATE_URL = '#'; // Replace with your donation URL before publishing.
+  const DONATE_URL = 'https://www.paypal.com/donate/?hosted_button_id=H8JNZEY45BUHA; // Replace with your donation URL before publishing.
   const QR_TARGET_URL_LENGTH = 1150;
   const DB_NAME = 'text-list-v0.1';
   const STORE = 'kv';
@@ -60,6 +60,7 @@
     }
   }
   loadDisplayedVersion();
+  $('helpDonateLink').href = DONATE_URL;
 
   function openHelp() { if (!helpDialog.open) helpDialog.showModal(); }
   $('helpBtn').addEventListener('click', openHelp);
