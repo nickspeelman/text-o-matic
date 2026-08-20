@@ -40,7 +40,19 @@
       const source = await response.text();
       const match = source.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
       if (!match) throw new Error('APP_VERSION not found');
-      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${match[1]}` : match[1]; });
+
+      const isDev =
+        location.hostname === 'text-o-matic-dev.nickspeelman.com' ||
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
+
+      const displayedVersion = `${match[1]}${isDev ? '-dev' : ''}`;
+
+      targets.forEach(el => {
+        el.textContent = el.classList.contains('version')
+          ? `v${displayedVersion}`
+          : displayedVersion;
+});
     } catch (err) {
       console.warn('Text-o-Matic could not read the app version from the service worker:', err);
       targets.forEach(el => { el.textContent = el.classList.contains('version') ? 'v?' : '?'; });
