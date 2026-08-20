@@ -1,9 +1,9 @@
-# Text-o-Matic v2.0.0
+# Text-o-Matic v1.1
 
 A static, client-side web app for preparing personalized SMS or WhatsApp messages from pasted data, CSV files, or Excel workbooks.
 
 
-## v2.0.0 changes
+## v1.1 changes
 
 - Added WhatsApp as a first-class messaging option alongside SMS / the device's default texting app.
 - Step 5 now asks which messaging app to use before choosing this device or a QR handoff.
@@ -13,7 +13,7 @@ A static, client-side web app for preparing personalized SMS or WhatsApp message
 - Added a **Change app** control in the sequential sending view.
 - Generalized message-open usage counting while preserving previous SMS usage totals.
 - Updated privacy language to explain the boundary between Text-o-Matic's local processing and handing a recipient/message to WhatsApp.
-- Bumped the service-worker app version to `2.0.0`.
+- Bumped the service-worker app version to `1.1.0`.
 
 ## v0.1.13 changes
 
