@@ -181,6 +181,10 @@
     syncMappingsFromUI();
     if (!state.phoneCol) return alert('Choose one column to use as the phone number.');
     if (!state.mergeCols.length) state.mergeCols = state.headers.filter(h => h !== state.phoneCol && !state.ignoredCols.includes(h));
+    // Start each newly mapped list with deduplication enabled. Previous review
+    // overrides should never leak into a remapped phone column.
+    Object.keys(state.issueRules).filter(k => k.startsWith('__duplicate__')).forEach(k => delete state.issueRules[k]);
+    state.previewIndex = 0;
     buildMergeChips();
     updatePreview();
     enableStep(3); showStep(3);
@@ -205,21 +209,22 @@
 
   $('messageTemplate').addEventListener('input', () => { state.template = $('messageTemplate').value; updatePreview(); });
   $('prevPreview').addEventListener('click', () => { state.previewIndex = Math.max(0, state.previewIndex - 1); updatePreview(); });
-  $('nextPreview').addEventListener('click', () => { state.previewIndex = Math.min(state.rows.length - 1, state.previewIndex + 1); updatePreview(); });
+  $('nextPreview').addEventListener('click', () => { state.previewIndex = Math.min(activeRowIndexes().length - 1, state.previewIndex + 1); updatePreview(); });
 
   function displayName(row) {
     const n = state.displayCols.map(h => row[h]).filter(Boolean).join(' ').trim();
     return n || normalizePhone(row[state.phoneCol]) || 'Unnamed recipient';
   }
   function updatePreview() {
-    if (!state.rows.length) return;
-    state.previewIndex = Math.min(state.previewIndex, state.rows.length - 1);
-    const row = state.rows[state.previewIndex];
+    const indexes = activeRowIndexes();
+    if (!indexes.length) return;
+    state.previewIndex = Math.min(state.previewIndex, indexes.length - 1);
+    const row = state.rows[indexes[state.previewIndex]];
     $('previewName').textContent = displayName(row);
-    $('previewCounter').textContent = `${state.previewIndex + 1} / ${state.rows.length}`;
+    $('previewCounter').textContent = `${state.previewIndex + 1} / ${indexes.length}`;
     $('messagePreview').textContent = renderTemplate($('messageTemplate').value, row, false);
     $('prevPreview').disabled = state.previewIndex === 0;
-    $('nextPreview').disabled = state.previewIndex === state.rows.length - 1;
+    $('nextPreview').disabled = state.previewIndex === indexes.length - 1;
   }
 
   $('messageNextBtn').addEventListener('click', () => {
@@ -241,27 +246,43 @@
   function duplicateKey(phone) { return `__duplicate__${phone}`; }
 
   function duplicateGroups() {
+    if (!state.phoneCol) return [];
     const byPhone = new Map();
     state.rows.forEach((row, idx) => {
       const phone = normalizePhone(row[state.phoneCol]);
       if (!phone) return;
-      if (!byPhone.has(phone)) byPhone.set(phone, []);
-      byPhone.get(phone).push(idx);
+      const key = phone.toLowerCase();
+      if (!byPhone.has(key)) byPhone.set(key, { phone, indexes: [] });
+      byPhone.get(key).indexes.push(idx);
     });
-    return [...byPhone.entries()]
-      .filter(([, indexes]) => indexes.length > 1)
-      .map(([phone, indexes]) => ({ phone, indexes, key: duplicateKey(phone) }));
+    return [...byPhone.values()]
+      .filter(group => group.indexes.length > 1)
+      .map(group => ({ ...group, key: duplicateKey(group.phone.toLowerCase()) }));
   }
 
   function includedIndexesAfterDedupe() {
-    const duplicates = duplicateGroups();
-    const excluded = new Set();
-    duplicates.forEach(group => {
-      const rule = state.issueRules[group.key];
-      if (rule?.type === 'keepAll') return;
-      group.indexes.slice(1).forEach(idx => excluded.add(idx));
+    // Default behavior is always to keep the first occurrence of a normalized
+    // phone number. A duplicate can only re-enter the active list when the
+    // user explicitly chooses “Keep all” in Review.
+    const included = new Set();
+    const seen = new Map();
+    state.rows.forEach((row, idx) => {
+      const phone = normalizePhone(row[state.phoneCol]);
+      if (!phone) { included.add(idx); return; }
+      const key = phone.toLowerCase();
+      if (!seen.has(key)) {
+        seen.set(key, idx);
+        included.add(idx);
+        return;
+      }
+      const rule = state.issueRules[duplicateKey(key)];
+      if (rule?.type === 'keepAll') included.add(idx);
     });
-    return new Set(state.rows.map((_, idx) => idx).filter(idx => !excluded.has(idx)));
+    return included;
+  }
+
+  function activeRowIndexes() {
+    return [...includedIndexesAfterDedupe()].sort((a,b) => a-b);
   }
 
   function analyze() {

@@ -1,15 +1,15 @@
-# Text-o-Matic v0.1.5
+# Text-o-Matic v0.1.6
 
 A static, client-side web app for preparing personalized SMS messages from pasted data or CSV files.
 
-## v0.1.5 changes
+## v0.1.6 changes
 
 - Revised privacy language to explain that contact/message data is processed locally and is never uploaded to Text-o-Matic or sent to a server.
 - QR-transfer copy now explains that data is encoded into the QR code and moved between devices without being uploaded to or exposed on the internet.
 - Added a warning to treat transfer QR codes like the contact list itself and not share or save them.
 - Incoming transfer payloads are removed from the current URL immediately after they are decoded.
 - `service-worker.js` is now the single source of truth for the app version. Update only `APP_VERSION` there; the visible footer and Help version read it automatically.
-- Bumped the build to `v0.1.5`.
+- Bumped the build to `v0.1.6`.
 
 ## Core features
 
@@ -89,7 +89,7 @@ For QR handoff testing, the page must be reachable by the phone, such as a deplo
 Questions, issues, or comments: `nick@nickspeelman.com`
 
 
-## v0.1.5 notes
+## v0.1.6 notes
 
 - Duplicate recipients are detected by normalized phone number. The first row is kept by default and later duplicates are excluded, with an override in Review.
 - The column-mapping screen now explains what “Display name” controls.
