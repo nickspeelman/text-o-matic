@@ -1,15 +1,14 @@
-# Text-o-Matic v0.1.10
+# Text-o-Matic v0.1.11
 
 A static, client-side web app for preparing personalized SMS messages from pasted data, CSV files, or Excel workbooks.
 
 
-## v0.1.10 changes
+## v0.1.11 changes
 
-- Added local import support for `.xls` and `.xlsx` workbooks in addition to CSV.
-- Multi-sheet Excel workbooks now show a sheet selector before import.
-- Excel rows feed into the same column-mapping, merge-field, dedupe, review, and texting workflow as CSV data.
-- Uses the full SheetJS Community Edition browser build (`0.20.3`) because legacy `.xls` support is not included in the mini build. The library code is fetched as a static browser asset; workbook contents are read locally and are not sent with that request.
-- Bumped the single-source service-worker version to `0.1.10`.
+- Added a live display-name preview on the column-mapping screen.
+- Added an ordered display-name field list with explicit **↑ Earlier** and **↓ Later** controls.
+- Display-name order is preserved independently of the spreadsheet column order and is used everywhere recipients are labeled.
+- Bumped the single-source service-worker version to `0.1.11`.
 
 ## Core features
 
@@ -68,7 +67,7 @@ The service worker precaches the core Text-o-Matic shell and runtime-caches the 
 ## Run locally
 
 ```powershell
-cd path\to\text_o_matic_v0_1_9
+cd path\to\text_o_matic_v0_1_11
 python -m http.server 8000
 ```
 

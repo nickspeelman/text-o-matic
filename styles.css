@@ -130,3 +130,17 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
 
 #sheetChooser { margin-top: 14px; }
 #sheetChooser label { display: block; margin-bottom: 6px; font-weight: 600; }
+
+/* Display-name builder */
+.display-name-builder { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+.display-name-preview { margin-bottom: 14px; }
+.display-name-example { margin-top: 6px; font-size: 1.15rem; font-weight: 700; }
+.display-name-order { display: grid; gap: 8px; }
+.display-name-fields { display: grid; gap: 8px; margin-top: 4px; }
+.display-name-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.display-name-move { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.small-btn { padding: 6px 9px; font-size: .82rem; }
+@media (max-width: 600px) {
+  .display-name-field { align-items: flex-start; flex-direction: column; }
+  .display-name-move { width: 100%; justify-content: flex-start; }
+}

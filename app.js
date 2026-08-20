@@ -292,11 +292,48 @@
             </td>
           </tr>`).join('')}</tbody>
       </table>
-      <div class="mapping-note"><strong>What is “Display name”?</strong> This is what Text-o-Matic will call the recipient on the texting screen. For example, choosing <em>First Name</em> and <em>Last Name</em> will show “Jane Smith.” You can choose more than one display-name column; they will be joined with spaces. Display-name columns can still be used as merge fields in your message.</div>`;
+      <div class="mapping-note"><strong>What is “Display name”?</strong> This is what Text-o-Matic will call the recipient on the texting screen. For example, choosing <em>First Name</em> and <em>Last Name</em> can show “Jane Smith.” Display-name columns can still be used as merge fields in your message.</div>
+      <div id="displayNameBuilder" class="display-name-builder"></div>`;
     $$('.mapping-select').forEach(sel => {
       if (sel.value === 'merge' && state.mergeCols.includes(sel.dataset.header)) sel.value = 'merge';
-      sel.addEventListener('change', syncMappingsFromUI);
+      sel.addEventListener('change', () => { syncMappingsFromUI(); renderDisplayNameBuilder(); });
     });
+    renderDisplayNameBuilder();
+  }
+
+  function renderDisplayNameBuilder() {
+    const area = $('displayNameBuilder');
+    if (!area) return;
+    if (!state.displayCols.length) {
+      area.innerHTML = `<div class="display-name-preview"><strong>Display name preview</strong><div class="muted">Choose one or more columns as <em>Display name</em> to preview how recipients will be labeled.</div></div>`;
+      return;
+    }
+    const row = state.rows.find(r => state.displayCols.some(h => String(r[h] ?? '').trim())) || state.rows[0] || {};
+    const preview = state.displayCols.map(h => String(row[h] ?? '').trim()).filter(Boolean).join(' ') || 'Unnamed recipient';
+    area.innerHTML = `
+      <div class="display-name-preview">
+        <strong>Display name preview</strong>
+        <div class="display-name-example">${escapeHtml(preview)}</div>
+      </div>
+      <div class="display-name-order">
+        <div><strong>Display name field order</strong></div>
+        <div class="muted">Fields are joined from top to bottom. Use <strong>↑ Earlier</strong> or <strong>↓ Later</strong> to change their order.</div>
+        <div class="display-name-fields">${state.displayCols.map((h, i) => `
+          <div class="display-name-field">
+            <span>${escapeHtml(h)}</span>
+            <span class="display-name-move">
+              <button type="button" class="small-btn move-display" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${escapeAttr(h)} earlier in the display name">↑ Earlier</button>
+              <button type="button" class="small-btn move-display" data-index="${i}" data-dir="1" ${i === state.displayCols.length - 1 ? 'disabled' : ''} aria-label="Move ${escapeAttr(h)} later in the display name">↓ Later</button>
+            </span>
+          </div>`).join('')}</div>
+      </div>`;
+    $$('#displayNameBuilder .move-display').forEach(btn => btn.addEventListener('click', () => {
+      const from = Number(btn.dataset.index);
+      const to = from + Number(btn.dataset.dir);
+      if (to < 0 || to >= state.displayCols.length) return;
+      [state.displayCols[from], state.displayCols[to]] = [state.displayCols[to], state.displayCols[from]];
+      renderDisplayNameBuilder();
+    }));
   }
 
   function sampleValues(h) {
@@ -311,7 +348,11 @@
       $$('.mapping-select').forEach(s => { if (s.dataset.header !== keep && s.value === 'phone') s.value = 'merge'; });
     }
     state.phoneCol = ($$('.mapping-select').find(s => s.value === 'phone') || {}).dataset?.header || '';
-    state.displayCols = $$('.mapping-select').filter(s => s.value === 'display').map(s => s.dataset.header);
+    const selectedDisplay = $$('.mapping-select').filter(s => s.value === 'display').map(s => s.dataset.header);
+    // Preserve the user's chosen display-name order, removing deselected fields
+    // and appending newly selected fields at the end.
+    state.displayCols = state.displayCols.filter(h => selectedDisplay.includes(h));
+    selectedDisplay.forEach(h => { if (!state.displayCols.includes(h)) state.displayCols.push(h); });
     state.mergeCols = $$('.mapping-select').filter(s => ['merge','display'].includes(s.value)).map(s => s.dataset.header);
     state.ignoredCols = $$('.mapping-select').filter(s => s.value === 'ignore').map(s => s.dataset.header);
   }
