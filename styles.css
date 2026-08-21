@@ -143,7 +143,7 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
 @media (prefers-color-scheme: dark) {
   :root { --bg:#101317; --panel:#171b20; --text:#f0f2f4; --muted:#a6aeb8; --border:#333a43; --accent:#7d9bff; --accent-strong:#6a88eb; --accent-soft:#202941; --good-bg:#153427; --warn-bg:#3b2d12; --bad-bg:#3e201e; }
   .preview-card, .texting-card .message-box { background:#13171b; }
-  code { background:#2b3138; }
+  code, kbd { background:#2b3138; color:var(--text); border-color:var(--border); }
 }
 
 #sheetChooser { margin-top: 14px; }
