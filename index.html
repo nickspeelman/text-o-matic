@@ -39,6 +39,27 @@
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
+
+  <script>
+    (() => {
+      const host = window.location.hostname;
+
+      if (host === "text-o-matic.nickspeelman.com") {
+        const canonical = document.createElement("link");
+        canonical.rel = "canonical";
+        canonical.href = "https://text-o-matic.nickspeelman.com/";
+        document.head.appendChild(canonical);
+      }
+
+      if (host === "text-o-matic-dev.nickspeelman.com") {
+        const robots = document.createElement("meta");
+        robots.name = "robots";
+        robots.content = "noindex, nofollow";
+        document.head.appendChild(robots);
+      }
+    })();
+</script>
+
 </head>
 <body>
   <div class="app-shell">
@@ -189,8 +210,9 @@
             </div>
             <div class="card">
               <h3>Transfer to another device</h3>
-              <p id="qrEstimate">Create one or more QR codes that reconstruct the prepared list on the other device.</p>
-              <button id="prepareQrBtn" class="secondary" type="button">Prepare QR transfer</button>
+              <p id="qrEstimate">Move the prepared list directly to another device. Nothing is uploaded to store the transfer.</p>
+              <button id="prepareQrBtn" class="secondary" type="button">Prepare device transfer</button>
+              <p class="muted transfer-explainer-link"><button id="transferFromChoiceBtn" class="link-button" type="button">How does device transfer work?</button></p>
             </div>
           </div>
         </div>
@@ -228,9 +250,19 @@
         <li>Choose the phone column, the name shown for each recipient, merge fields, and ignored columns.</li>
         <li>Write a message using fields like <code>{{First Name}}</code>.</li>
         <li>Review missing data and customize fallback messages when needed.</li>
-        <li>Send with SMS or WhatsApp on this device, or transfer the prepared list and messaging-app choice with QR codes.</li>
+        <li>Send with SMS or WhatsApp on this device, or transfer the prepared list and messaging-app choice directly to another device.</li>
       </ol>
-      <div class="privacy-note"><strong>Your contact and message data stays private.</strong> Your imported contacts and message content are processed locally in your browser and are not uploaded to Text-o-Matic or Cloudflare Analytics. QR transfers move the prepared data directly between your devices without uploading it to the internet.<br><br><button id="privacyFromHelpBtn" class="link-button" type="button">Privacy details</button></div>
+      <div class="privacy-note trust-note">
+        <strong>Private by design — and you can verify it.</strong>
+        <p>Your contacts, uploaded file contents, phone numbers, merge-field values, and message text are processed locally in your browser. Text-o-Matic does not send that information to me or to Cloudflare Web Analytics.</p>
+        <p class="trust-prompt"><strong>Don't take my word for it:</strong> once Text-o-Matic says <em>Offline ready</em>, disconnect from the internet and keep using it; inspect the open-source code; or watch your browser's network traffic while you use the app.</p>
+        <div class="trust-links">
+          <button id="privacyFromHelpBtn" class="secondary" type="button">Privacy details</button>
+          <button id="networkFromHelpBtn" class="secondary" type="button">How to inspect network traffic</button>
+          <button id="transferFromHelpBtn" class="secondary" type="button">How device transfer works</button>
+          <a class="source-code-link secondary button" href="#" target="_blank" rel="noopener">View source on GitHub</a>
+        </div>
+      </div>
       <p class="help-contact">Questions, issues, or comments? <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">nick@nickspeelman.com</a></p>
       <label class="check-row"><input id="hideHelpCheckbox" type="checkbox"> Don't show these instructions automatically in the future</label>
       <div class="dialog-actions"><button id="helpDoneBtn" class="primary" value="default">Get started</button></div>
@@ -247,14 +279,59 @@
         </div>
         <button id="privacyCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
       </div>
-      <p><strong>Your contact and message data stays on your devices.</strong> Text-o-Matic processes phone numbers, names, merge fields, and message content entirely in your browser. That information is not uploaded to Text-o-Matic and is not sent to Cloudflare Web Analytics.</p>
-      <p><strong>QR transfers are device-to-device.</strong> If you transfer a prepared list with a QR code, the contact and message data is encoded directly into the QR code. The receiving device reads that data from the code and reconstructs the list locally, without uploading the list to the internet.</p>
+      <p><strong>Your contact and message data stays on your devices.</strong> Text-o-Matic processes uploaded file contents, phone numbers, names, merge fields, and message content entirely in your browser. That information is not uploaded to Text-o-Matic and is not sent to Cloudflare Web Analytics.</p>
+      <p><strong>You can verify this yourself.</strong> Once the app reports <em>Offline ready</em>, it can keep preparing lists and messages with your internet connection turned off. You can also <a id="networkFromPrivacyBtn" href="#">inspect its network traffic</a> while you work or <a class="source-code-link" href="#" target="_blank" rel="noopener">read the source code on GitHub</a>.</p>
+      <p><strong>Device Transfer does not upload your list.</strong> Text-o-Matic encodes the transfer data directly into one or more QR codes. The code contains the data needed to rebuild the prepared list on the other device; it does not point to a copy of your contacts stored on a server. <a id="transferFromPrivacyBtn" href="#">See exactly how this works</a>.</p>
       <p><strong>Opening a message hands it to the messaging service you selected.</strong> SMS links are passed to your device's texting app. WhatsApp links include the recipient phone number and prepared message so WhatsApp can open the conversation with the text filled in. From that point, WhatsApp's own service and privacy practices apply.</p>
-      <p><strong>Keep transfer QR codes private.</strong> A transfer QR code contains the prepared contact and message data. Treat it like the list itself and do not share or save it.</p>
+      <p><strong>Keep Device Transfer codes private.</strong> Because the prepared contact and message data is in the QR code itself, treat the code like the list itself and do not share or save it.</p>
       <p><strong>Basic usage analytics.</strong> Text-o-Matic uses Cloudflare Web Analytics so we can tell whether the site is being used and how it performs. It provides aggregate information such as visits, page views, and performance metrics. It does not receive your imported contacts, merge-field values, or message text, and Cloudflare Web Analytics does not use cookies or local storage for analytics.</p>
-      <p><strong>Local browser storage.</strong> Text-o-Matic uses browser storage such as IndexedDB and local storage for app functions including preferences, usage counters, incomplete QR transfers, and other local state. This information remains in your browser unless you clear it.</p>
+      <p><strong>Local browser storage.</strong> Text-o-Matic uses browser storage such as IndexedDB and local storage for app functions including preferences, usage counters, incomplete Device Transfers, and other local state. This information remains in your browser unless you clear it.</p>
       <p>Questions about privacy can be sent to <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20privacy">nick@nickspeelman.com</a>.</p>
       <div class="dialog-actions"><button id="privacyDoneBtn" class="primary" type="button">Done</button></div>
+      <p class="dialog-version">Version <span data-app-version>…</span></p>
+    </div>
+  </dialog>
+
+  <dialog id="networkDialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Verify it yourself</p>
+          <h2>Inspect Text-o-Matic's network traffic</h2>
+        </div>
+        <button id="networkCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <p>You can use your browser's built-in developer tools to see every network request Text-o-Matic makes while you use it.</p>
+      <ol class="help-list network-steps">
+        <li>Open Text-o-Matic, then open your browser's developer tools. In Chrome, Edge, and Firefox, <kbd>F12</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> usually opens them.</li>
+        <li>Select the <strong>Network</strong> tab and reload the page so you can see the requests made when the app starts.</li>
+        <li>Paste or upload a test list, map its columns, and build a message while the Network tab remains open.</li>
+        <li>You will see ordinary requests needed to load the site, its libraries, and anonymous analytics while online. What you should <strong>not</strong> see is Text-o-Matic transmitting your uploaded file contents, contact list, phone numbers, merge-field values, or message text.</li>
+        <li>For an additional check, wait until the footer says <strong>Offline ready</strong>, disconnect from the internet, and continue using the app.</li>
+      </ol>
+      <div class="verification-note"><strong>One important boundary:</strong> when you choose to open a prepared message, Text-o-Matic hands the recipient and message to the messaging app or service you selected. Network activity from that app or service is outside Text-o-Matic.</div>
+      <p><a class="source-code-link" href="#" target="_blank" rel="noopener">View the source code on GitHub</a> if you'd also like to inspect how the app works.</p>
+      <div class="dialog-actions"><button id="networkDoneBtn" class="primary" type="button">Done</button></div>
+      <p class="dialog-version">Version <span data-app-version>…</span></p>
+    </div>
+  </dialog>
+
+  <dialog id="transferDialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Device Transfer</p>
+          <h2>How can a QR code work without uploading my list?</h2>
+        </div>
+        <button id="transferCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <p><strong>A QR code is just machine-readable data.</strong> It does not inherently mean “internet” or “website.” Text-o-Matic puts the information needed for the transfer directly into the code itself.</p>
+      <p><strong>There is no online copy of your contact list for the QR code to retrieve.</strong> When the other device scans the code, Text-o-Matic reads the encoded data and reconstructs the prepared list locally on that device.</p>
+      <p><strong>The code does include the Text-o-Matic web address so your camera can open the app.</strong> The private transfer data is placed after the <code>#</code> in that address (the <a href="https://en.wikipedia.org/wiki/URI_fragment" target="_blank" rel="noopener noreferrer">URL fragment</a>). Browsers do not send URL fragments to the web server when requesting a page, so the encoded contact/message payload is not part of the normal request to Text-o-Matic.</p>
+      <p>If the receiving device has not already cached Text-o-Matic, it may need internet access to load the app itself. That is separate from transferring your list: the contact and message data remains encoded in the QR code rather than being fetched from a server.</p>
+      <div class="verification-note"><strong>Easy way to think about it:</strong> the QR code is the envelope carrying the data, not a claim ticket for data stored somewhere online.</div>
+      <p><strong>Keep the code private.</strong> Because the transfer information is actually in the QR code, someone who can scan the code may be able to read the transfer. Treat it like the contact list itself.</p>
+      <div class="dialog-actions"><button id="transferDoneBtn" class="primary" type="button">Done</button></div>
       <p class="dialog-version">Version <span data-app-version>…</span></p>
     </div>
   </dialog>

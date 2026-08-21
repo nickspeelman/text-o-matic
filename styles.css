@@ -99,6 +99,14 @@ label { display: block; font-weight: 650; margin-bottom: 8px; }
 .transfer-status { padding: 18px; border-radius: 12px; background: var(--accent-soft); margin-bottom: 18px; }
 .help-list { padding-left: 22px; display: grid; gap: 10px; }
 .privacy-note { background: var(--accent-soft); border-radius: 10px; padding: 14px; margin: 18px 0; }
+.trust-note p { margin: 9px 0 0; }
+.trust-note .trust-prompt { margin-top: 12px; }
+.trust-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 13px; font-size: .9rem; }
+.trust-links .secondary { width: 100%; min-height: 44px; margin-top: 0; font-size: inherit; text-align: center; line-height: 1.2; }
+.trust-links a.secondary { box-sizing: border-box; }
+.network-steps { margin-top: 16px; }
+.verification-note { background: var(--accent-soft); border-radius: 10px; padding: 14px; margin: 18px 0; }
+kbd { font: inherit; font-size: .88em; background: #edf0f3; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
 .check-row { display: flex; gap: 9px; align-items: center; font-weight: 500; }
 .check-row input { width: auto; }
 dialog { border: none; padding: 0; border-radius: 16px; width: min(650px, calc(100% - 28px)); color: var(--text); background: var(--panel); }
@@ -129,6 +137,7 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
   .mapping-table td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .75rem; font-weight: 700; margin-bottom: 4px; }
   .wizard-actions { position: sticky; bottom: 0; background: var(--panel); padding: 12px 0 2px; }
   .recipient-row { grid-template-columns: 1fr; }
+  .trust-links { grid-template-columns: 1fr; }
 }
 
 @media (prefers-color-scheme: dark) {
