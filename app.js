@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const DONATE_URL = 'https://www.paypal.com/donate/?hosted_button_id=H8JNZEY45BUHA'; // Replace with your donation URL before publishing.
+  const DONATE_URL = 'https://www.paypal.com/donate/?hosted_button_id=H8JNZEY45BUHA';
   const QR_TARGET_URL_LENGTH = 1150;
   const DB_NAME = 'text-list-v0.1';
   const STORE = 'kv';
@@ -20,8 +20,7 @@
     prepared: [],
     qrChunks: [],
     qrIndex: 0,
-    textIndex: 0,
-    deliveryApp: 'sms'
+    textIndex: 0
   };
 
   const $ = (id) => document.getElementById(id);
@@ -41,38 +40,56 @@
       const source = await response.text();
       const match = source.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
       if (!match) throw new Error('APP_VERSION not found');
-
-      const isDev =
-        location.hostname === 'text-o-matic-dev.nickspeelman.com' ||
-        location.hostname === 'localhost' ||
-        location.hostname === '127.0.0.1';
-
-      const displayedVersion = `${match[1]}${isDev ? '-dev' : ''}`;
-
-      targets.forEach(el => {
-        el.textContent = el.classList.contains('version')
-          ? `v${displayedVersion}`
-          : displayedVersion;
-});
+      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${match[1]}` : match[1]; });
     } catch (err) {
       console.warn('Text-o-Matic could not read the app version from the service worker:', err);
       targets.forEach(el => { el.textContent = el.classList.contains('version') ? 'v?' : '?'; });
     }
   }
   loadDisplayedVersion();
-  $('helpDonateLink').href = DONATE_URL;
 
-  function openHelp() { if (!helpDialog.open) helpDialog.showModal(); }
+  // Help/detail dialogs deliberately remain open underneath one another.
+  // Native <dialog>.showModal() places each newly opened dialog on top, so
+  // closing the current dialog reveals the one that opened it, regardless
+  // of how many help/detail dialogs are in the chain.
+  function openStackedDialog(dialog, event) {
+    event?.preventDefault();
+    if (dialog && !dialog.open) dialog.showModal();
+  }
+
+  function openHelp(event) { openStackedDialog(helpDialog, event); }
   $('helpBtn').addEventListener('click', openHelp);
   $('helpDoneBtn').addEventListener('click', () => {
     localStorage.setItem('textList.hideHelp', $('hideHelpCheckbox').checked ? '1' : '0');
   });
-  $('privacyFromHelpBtn').addEventListener('click', () => {
-    helpDialog.close();
-    if (!privacyDialog.open) privacyDialog.showModal();
-  });
+  $('privacyFromHelpBtn').addEventListener('click', (event) => openStackedDialog(privacyDialog, event));
   $('privacyCloseBtn').addEventListener('click', () => privacyDialog.close());
   $('privacyDoneBtn').addEventListener('click', () => privacyDialog.close());
+
+  const networkDialog = $('networkDialog');
+  const transferDialog = $('transferDialog');
+
+  function openNetworkDialog(event) {
+    openStackedDialog(networkDialog, event);
+  }
+  function openTransferDialog(event) {
+    openStackedDialog(transferDialog, event);
+  }
+
+  $('networkFromHelpBtn')?.addEventListener('click', openNetworkDialog);
+  $('networkFromPrivacyBtn')?.addEventListener('click', openNetworkDialog);
+  $('transferFromHelpBtn')?.addEventListener('click', openTransferDialog);
+  $('transferFromPrivacyBtn')?.addEventListener('click', openTransferDialog);
+  $('transferFromChoiceBtn')?.addEventListener('click', openTransferDialog);
+  $('networkCloseBtn')?.addEventListener('click', () => networkDialog.close());
+  $('networkDoneBtn')?.addEventListener('click', () => networkDialog.close());
+  $('transferCloseBtn')?.addEventListener('click', () => transferDialog.close());
+  $('transferDoneBtn')?.addEventListener('click', () => transferDialog.close());
+
+  const sourceUrl = location.hostname === 'text-o-matic-dev.nickspeelman.com'
+    ? 'https://github.com/nickspeelman/text-o-matic-dev'
+    : 'https://github.com/nickspeelman/text-o-matic';
+  $$('.source-code-link').forEach(link => { link.href = sourceUrl; });
   if (!location.hash.startsWith('#xfer=') && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
 
   function parseDelimited(text) {
@@ -629,29 +646,12 @@
     renderStep5Choice();
   });
 
-  function deliveryAppName(app = state.deliveryApp) {
-    return app === 'whatsapp' ? 'WhatsApp' : 'SMS / text';
-  }
-
   function renderStep5Choice() {
     $('textChoice').classList.remove('hidden'); $('textingView').classList.add('hidden'); $('qrView').classList.add('hidden');
-    $('deliveryAppSelect').value = state.deliveryApp;
     const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const isWhatsApp = state.deliveryApp === 'whatsapp';
-    $('deliveryAppHelp').textContent = isWhatsApp
-      ? 'WhatsApp uses phone numbers in international format. 10-digit U.S./Canada numbers are treated as +1.'
-      : "Messages will open in this device's default SMS / texting app.";
-    $('localSendDescription').textContent = isWhatsApp
-      ? 'Open each prepared message in WhatsApp on this device.'
-      : "Open each prepared message in this device's SMS app.";
-    $('startHereBtn').textContent = mobile ? `Start with ${deliveryAppName()}` : `Use this device with ${deliveryAppName()}`;
-    $('qrEstimate').textContent = `Create one or more QR codes that reconstruct the prepared list and ${deliveryAppName()} choice on the other device.`;
+    $('startHereBtn').textContent = mobile ? 'Start texting' : 'Use this device';
+    $('qrEstimate').textContent = 'Create one or more QR codes that reconstruct the prepared list on the other device.';
   }
-
-  $('deliveryAppSelect').addEventListener('change', () => {
-    state.deliveryApp = $('deliveryAppSelect').value === 'whatsapp' ? 'whatsapp' : 'sms';
-    renderStep5Choice();
-  });
 
   $('startHereBtn').addEventListener('click', () => startTexting(state.prepared));
 
@@ -669,25 +669,19 @@
     if (!list.length) { host.innerHTML = '<p>No recipients available.</p>'; return; }
     const r = list[state.textIndex];
     const completed = list.filter(x => x.done).length;
-    const appName = deliveryAppName();
     host.innerHTML = `<div class="texting-card">
       <div class="progress-line"><span>${state.textIndex + 1} of ${list.length}</span><span>${completed} opened</span></div>
-      <div class="send-app-line"><span>Sending with <strong>${escapeHtml(appName)}</strong></span><button id="changeDeliveryAppBtn" class="link-button" type="button">Change app</button></div>
-      <h3>${escapeHtml(r.name)}</h3><p class="muted">${escapeHtml(formatPhoneForDisplay(r.phone))}</p>
+      <h3>${escapeHtml(r.name)}</h3><p class="muted">${escapeHtml(r.phone)}</p>
       <div class="message-box">${escapeHtml(r.message)}</div>
       <div class="issue-actions">
-        <a id="messageOpenLink" class="button primary" href="${escapeAttr(deliveryHref(state.deliveryApp, r.phone, r.message))}">${state.deliveryApp === 'whatsapp' ? 'Open in WhatsApp' : 'Open text message'}</a>
+        <a id="smsOpenLink" class="button primary" href="${escapeAttr(smsHref(r.phone, r.message))}">Open text message</a>
         <button id="skipTextBtn" class="secondary" type="button">Skip</button>
         <button id="showRecipientListBtn" class="secondary" type="button">Recipient list</button>
       </div>
     </div>`;
-    $('messageOpenLink').addEventListener('click', async () => {
-      r.done = true; await recordMessageOpen(state.deliveryApp); maybeDonationPrompt();
+    $('smsOpenLink').addEventListener('click', async () => {
+      r.done = true; await incrementStat('smsLinksOpened', 1); maybeDonationPrompt();
       setTimeout(() => advanceText(), 350);
-    });
-    $('changeDeliveryAppBtn').addEventListener('click', () => {
-      $('textingView').classList.add('hidden');
-      renderStep5Choice();
     });
     $('skipTextBtn').addEventListener('click', advanceText);
     $('showRecipientListBtn').addEventListener('click', renderRecipientList);
@@ -728,7 +722,7 @@
     let current = [];
     for (const rec of recipients) {
       const candidate = [...current, compactRecipient(rec)];
-      const trial = await makeTransferUrl({ v:2, id:transferId, p:1, n:99, a:state.deliveryApp, r:candidate });
+      const trial = await makeTransferUrl({ v:1, id:transferId, p:1, n:99, r:candidate });
       if (trial.length > QR_TARGET_URL_LENGTH && current.length) { provisional.push(current); current = [compactRecipient(rec)]; }
       else current = candidate;
     }
@@ -736,7 +730,7 @@
     const total = provisional.length;
     const chunks = [];
     for (let i = 0; i < provisional.length; i++) {
-      const payload = { v:2, id:transferId, p:i+1, n:total, a:state.deliveryApp, r:provisional[i] };
+      const payload = { v:1, id:transferId, p:i+1, n:total, r:provisional[i] };
       chunks.push({ payload, url: await makeTransferUrl(payload) });
     }
     return chunks;
@@ -802,10 +796,8 @@
       document.querySelector('.steps').classList.add('hidden');
       const host = $('incomingTransfer'); host.classList.remove('hidden');
       const key = `transfer:${payload.id}`;
-      const current = (await idbGet(key)) || { total:payload.n, app:payload.a === 'whatsapp' ? 'whatsapp' : 'sms', parts:{} };
-      current.total = payload.n;
-      current.app = payload.a === 'whatsapp' ? 'whatsapp' : (current.app || 'sms');
-      current.parts[String(payload.p)] = payload.r;
+      const current = (await idbGet(key)) || { total:payload.n, parts:{} };
+      current.total = payload.n; current.parts[String(payload.p)] = payload.r;
       await idbSet(key, current);
       const got = Object.keys(current.parts).length;
       if (got < current.total) {
@@ -814,8 +806,7 @@
         const recipients = [];
         for (let i=1;i<=current.total;i++) (current.parts[String(i)] || []).forEach(a => recipients.push(expandRecipient(a, recipients.length)));
         state.prepared = recipients;
-        state.deliveryApp = current.app === 'whatsapp' ? 'whatsapp' : 'sms';
-        host.innerHTML = `<div class="transfer-status"><h2>Transfer complete</h2><p>${recipients.length.toLocaleString()} recipients loaded for ${escapeHtml(deliveryAppName())}.</p></div><button id="incomingStart" class="primary" type="button">Start with ${escapeHtml(deliveryAppName())}</button>`;
+        host.innerHTML = `<div class="transfer-status"><h2>Transfer complete</h2><p>${recipients.length.toLocaleString()} recipients loaded.</p></div><button id="incomingStart" class="primary" type="button">Start texting</button>`;
         $('incomingStart').addEventListener('click', () => {
           host.classList.add('hidden');
           document.querySelector('[data-panel="5"]').classList.remove('hidden');
@@ -856,13 +847,6 @@
     const sep = /iPad|iPhone|iPod/.test(navigator.userAgent) ? '&' : '?';
     return `sms:${phone}${sep}body=${encodeURIComponent(message)}`;
   }
-  function whatsappHref(phone, message) {
-    const digits = String(phone || '').replace(/\D/g, '');
-    return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
-  }
-  function deliveryHref(app, phone, message) {
-    return app === 'whatsapp' ? whatsappHref(phone, message) : smsHref(phone, message);
-  }
 
   function resetCurrentSession() {
     state.rows = [];
@@ -879,7 +863,6 @@
     state.qrChunks = [];
     state.qrIndex = 0;
     state.textIndex = 0;
-    state.deliveryApp = 'sms';
 
     selectedFile = null;
     $('pasteInput').value = '';
@@ -953,18 +936,6 @@
       stats[key] = (stats[key] || 0) + amount; stats.lastUsed = new Date().toISOString(); await idbSet('stats', stats); return stats;
     } catch { return null; }
   }
-  async function recordMessageOpen(app) {
-    try {
-      const stats = (await idbGet('stats')) || { firstUsed:new Date().toISOString(), campaignsCreated:0, recipientsPrepared:0, smsLinksOpened:0, whatsappLinksOpened:0, messageLinksOpened:0, lastUsed:null, donateMilestoneShown:0 };
-      const previousTotal = stats.messageLinksOpened ?? stats.smsLinksOpened ?? 0;
-      stats.messageLinksOpened = previousTotal + 1;
-      if (app === 'whatsapp') stats.whatsappLinksOpened = (stats.whatsappLinksOpened || 0) + 1;
-      else stats.smsLinksOpened = (stats.smsLinksOpened || 0) + 1;
-      stats.lastUsed = new Date().toISOString();
-      await idbSet('stats', stats);
-      return stats;
-    } catch { return null; }
-  }
   async function rememberMapping() {
     try { await idbSet('lastMapping', { headers:state.headers, phoneCol:state.phoneCol, displayCols:state.displayCols, mergeCols:state.mergeCols }); } catch {}
   }
@@ -973,11 +944,10 @@
       if (localStorage.getItem('textList.noDonateAsk') === '1') return;
       const stats = await idbGet('stats'); if (!stats) return;
       const milestones = [1000,5000,10000,25000];
-      const opened = stats.messageLinksOpened ?? stats.smsLinksOpened ?? 0;
-      const milestone = milestones.filter(m => opened >= m && (stats.donateMilestoneShown || 0) < m).pop();
+      const milestone = milestones.filter(m => stats.smsLinksOpened >= m && (stats.donateMilestoneShown || 0) < m).pop();
       if (!milestone) return;
       stats.donateMilestoneShown = milestone; await idbSet('stats', stats);
-      $('donateTitle').textContent = `You've started more than ${milestone.toLocaleString()} messages with Text-o-Matic!`;
+      $('donateTitle').textContent = `You've started more than ${milestone.toLocaleString()} texts with Text-o-Matic!`;
       $('donateText').textContent = 'If this tool has saved you time, consider making a small donation to help keep it available.';
       $('donateLink').href = DONATE_URL;
       donateDialog.showModal();
