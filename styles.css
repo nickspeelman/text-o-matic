@@ -165,3 +165,50 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
 
 .help-donate-link { color: inherit; opacity: .7; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .help-donate-link:hover, .help-donate-link:focus-visible { opacity: 1; }
+
+/* v3 contact-card setup */
+.contact-card-setup { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.contact-card-setup summary { cursor: pointer; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
+.contact-card-setup summary span { color: var(--muted); font-size: .88rem; font-weight: 400; }
+.contact-card-body { border-top: 1px solid var(--border); padding: 16px; }
+.contact-field-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+.contact-field-grid label { margin: 0; }
+.contact-field-grid label span { display: block; margin-bottom: 6px; font-size: .85rem; }
+
+/* v3 texting queue */
+.queue-shell { display: grid; gap: 14px; }
+.queue-just, .queue-current, .queue-next { border: 1px solid var(--border); border-radius: 14px; }
+.queue-just { padding: 14px 16px; background: var(--panel); }
+.queue-current { padding: 20px; border-color: var(--accent); background: var(--accent-soft); }
+.queue-current .message-box { white-space: pre-wrap; background: var(--panel); border-radius: 10px; padding: 14px; margin: 16px 0; }
+.queue-next { padding: 13px 16px; display: flex; align-items: baseline; gap: 10px; }
+.queue-next .queue-label { margin-right: auto; }
+.queue-label { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; font-weight: 800; margin-bottom: 7px; }
+.queue-person-line { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.queue-primary-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.queue-primary-actions .primary { flex: 1 1 220px; }
+.queue-primary-actions .secondary { flex: 0 1 auto; }
+.queue-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; }
+.queue-nav button:last-child { justify-self: stretch; }
+.queue-list { display: grid; margin-top: 12px; }
+.queue-list-row { appearance: none; width: 100%; display: grid; grid-template-columns: 2.5rem 1fr auto; gap: 10px; align-items: center; padding: 12px 8px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; }
+.queue-list-row.current { background: var(--accent-soft); }
+.queue-list-index { color: var(--muted); text-align: right; }
+.queue-list-person { display: grid; gap: 2px; }
+.queue-list-person small { color: var(--muted); }
+.queue-status { font-size: .78rem; font-weight: 700; color: var(--muted); }
+.queue-status.messaged { color: var(--good); }
+.queue-status.skipped { color: var(--warn); }
+
+@media (max-width: 600px) {
+  .contact-field-grid { grid-template-columns: 1fr; }
+  .queue-person-line { align-items: flex-start; flex-direction: column; }
+  .queue-person-line .secondary { width: 100%; }
+  .queue-next { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .queue-primary-actions { flex-direction: column; }
+  .queue-primary-actions .primary, .queue-primary-actions .secondary { width: 100%; flex-basis: auto; }
+  .queue-nav { grid-template-columns: 1fr 1fr; }
+  .queue-nav #showQueueBtn { grid-column: 1 / -1; grid-row: 1; }
+  .queue-list-row { grid-template-columns: 2rem 1fr; }
+  .queue-status { grid-column: 2; }
+}

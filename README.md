@@ -1,5 +1,15 @@
-# Text-o-Matic v1.1
-## 2.0.2
+# Text-o-Matic v3.0.0
+
+## v3.0.0 changes
+
+- Added an optional, collapsed Contact card setup to Step 2.
+- Contact cards can map first name, last name, email, organization, title/role, and notes; phone comes from the existing phone mapping.
+- Replaced the sequential texting card with a queue showing Just messaged, Up now, and Next.
+- Added Message & next, Skip & next, Back, Forward, and a full queue browser with persistent Messaged/Skipped/Not contacted statuses.
+- The most recently messaged recipient remains available with Save contact after returning from the messaging app.
+- Contact cards are generated locally as vCard (.vcf) files and are included in device-transfer payloads when enabled.
+- Bumped the service-worker app version to 3.0.0.
+
 
 - Reframed QR handoff as Device Transfer and added explicit privacy/verifiability explanations.
 
