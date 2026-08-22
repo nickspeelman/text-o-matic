@@ -1,4 +1,19 @@
-# Text-o-Matic v3.0.0
+# Text-o-Matic v3.0.2
+
+## v3.0.2 changes
+
+- Version display now automatically appends `-dev` on `text-o-matic-dev.nickspeelman.com`; production continues to display the normal version number.
+- Contact-card **First name** and **Last name** now default from the Step 2 display-name fields.
+- Recognizable first/given and last/family/surname headers are assigned appropriately even if their display order differs.
+- If the display-name fields change, those contact-name defaults follow them until the user manually changes the corresponding contact-card dropdown.
+
+## v3.0.1 changes
+
+- Added one-active-session queue persistence in IndexedDB.
+- An unfinished texting queue now resumes automatically when Text-o-Matic is reopened on the same device.
+- Queue position, recipient statuses, and the most recently messaged recipient are preserved.
+- Session state is saved before launching the messaging app, so closing the browser/PWA after sending does not lose the next position or Save contact target.
+- The active session remains resumable until Finish is explicitly used.
 
 ## v3.0.0 changes
 

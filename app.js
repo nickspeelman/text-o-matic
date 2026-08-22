@@ -5,6 +5,7 @@
   const QR_TARGET_URL_LENGTH = 1150;
   const DB_NAME = 'text-list-v0.1';
   const STORE = 'kv';
+  const ACTIVE_SESSION_KEY = 'activeTextingSession';
 
   const state = {
     rows: [],
@@ -15,6 +16,7 @@
     mergeCols: [],
     ignoredCols: [],
     contactMap: { first:'', last:'', email:'', org:'', title:'', note:'' },
+    contactNameOverridden: { first:false, last:false },
     contactEnabled: false,
     template: '',
     previewIndex: 0,
@@ -43,7 +45,10 @@
       const source = await response.text();
       const match = source.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
       if (!match) throw new Error('APP_VERSION not found');
-      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${match[1]}` : match[1]; });
+      const baseVersion = match[1];
+      const isDevSite = location.hostname.toLowerCase() === 'text-o-matic-dev.nickspeelman.com';
+      const displayVersion = isDevSite ? `${baseVersion}-dev` : baseVersion;
+      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${displayVersion}` : displayVersion; });
     } catch (err) {
       console.warn('Text-o-Matic could not read the app version from the service worker:', err);
       targets.forEach(el => { el.textContent = el.classList.contains('version') ? 'v?' : '?'; });
@@ -93,7 +98,6 @@
     ? 'https://github.com/nickspeelman/text-o-matic-dev'
     : 'https://github.com/nickspeelman/text-o-matic';
   $$('.source-code-link').forEach(link => { link.href = sourceUrl; });
-  if (!location.hash.startsWith('#xfer=') && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
 
   function parseDelimited(text) {
     text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -163,13 +167,15 @@
     state.ignoredCols = [];
     const findHeader = (re) => state.headers.find(h => re.test(h)) || '';
     state.contactMap = {
-      first: findHeader(/(^|\b)first( name)?(\b|$)/i),
-      last: findHeader(/(^|\b)last( name)?(\b|$)/i),
+      first: '',
+      last: '',
       email: findHeader(/email/i),
       org: findHeader(/organi[sz]ation|company|employer/i),
       title: findHeader(/title|role|position/i),
       note: ''
     };
+    state.contactNameOverridden = { first:false, last:false };
+    applyDefaultContactNameMapping();
     state.contactEnabled = false;
   }
 
@@ -322,6 +328,22 @@
     return `<label><span>${escapeHtml(label)}</span><select class="contact-field-select" data-contact-key="${key}">${options.join('')}</select></label>`;
   }
 
+  function applyDefaultContactNameMapping() {
+    const display = state.displayCols.filter(h => state.headers.includes(h));
+    const firstNamed = display.find(h => /(^|\b)(first|given)( name)?(\b|$)/i.test(h)) || '';
+    const lastNamed = display.find(h => /(^|\b)(last|family|surname)( name)?(\b|$)/i.test(h)) || '';
+    const fallbackFirst = firstNamed || display.find(h => h !== lastNamed) || '';
+    const fallbackLast = lastNamed || display.find(h => h !== fallbackFirst) || '';
+
+    if (!state.contactNameOverridden.first) state.contactMap.first = fallbackFirst;
+    if (!state.contactNameOverridden.last) state.contactMap.last = fallbackLast;
+
+    ['first','last'].forEach(key => {
+      const select = document.querySelector(`.contact-field-select[data-contact-key="${key}"]`);
+      if (select) select.value = state.contactMap[key] || '';
+    });
+  }
+
   function syncContactMapFromUI() {
     const enabled = $('contactEnabled');
     if (enabled) state.contactEnabled = enabled.checked;
@@ -366,10 +388,19 @@
       </details>`;
     $$('.mapping-select').forEach(sel => {
       if (sel.value === 'merge' && state.mergeCols.includes(sel.dataset.header)) sel.value = 'merge';
-      sel.addEventListener('change', () => { syncMappingsFromUI(); renderDisplayNameBuilder(); });
+      sel.addEventListener('change', () => {
+        syncMappingsFromUI();
+        applyDefaultContactNameMapping();
+        renderDisplayNameBuilder();
+      });
     });
     $('contactEnabled')?.addEventListener('change', syncContactMapFromUI);
-    $$('.contact-field-select').forEach(sel => sel.addEventListener('change', syncContactMapFromUI));
+    $$('.contact-field-select').forEach(sel => sel.addEventListener('change', () => {
+      if (sel.dataset.contactKey === 'first' || sel.dataset.contactKey === 'last') {
+        state.contactNameOverridden[sel.dataset.contactKey] = true;
+      }
+      syncContactMapFromUI();
+    }));
     renderDisplayNameBuilder();
   }
 
@@ -404,6 +435,7 @@
       const to = from + Number(btn.dataset.dir);
       if (to < 0 || to >= state.displayCols.length) return;
       [state.displayCols[from], state.displayCols[to]] = [state.displayCols[to], state.displayCols[from]];
+      applyDefaultContactNameMapping();
       renderDisplayNameBuilder();
     }));
   }
@@ -699,13 +731,19 @@
 
   $('startHereBtn').addEventListener('click', () => startTexting(state.prepared));
 
-  function startTexting(list) {
+  function startTexting(list, options = {}) {
     state.prepared = list.map(r => ({ ...r, status: r.status || (r.done ? 'messaged' : 'pending') }));
-    const pending = state.prepared.findIndex(r => r.status === 'pending');
-    state.textIndex = pending >= 0 ? pending : 0;
-    state.lastMessagedIndex = -1;
+    if (options.resume) {
+      state.textIndex = Math.max(0, Math.min(Number(options.textIndex) || 0, Math.max(0, state.prepared.length - 1)));
+      state.lastMessagedIndex = Number.isInteger(options.lastMessagedIndex) ? options.lastMessagedIndex : -1;
+    } else {
+      const pending = state.prepared.findIndex(r => r.status === 'pending');
+      state.textIndex = pending >= 0 ? pending : 0;
+      state.lastMessagedIndex = -1;
+    }
     $('textChoice').classList.add('hidden'); $('qrView').classList.add('hidden'); $('textingView').classList.remove('hidden');
     renderTexting();
+    saveActiveSession();
   }
 
   function statusLabel(r) {
@@ -761,23 +799,28 @@
       </nav>
     </div>`;
 
-    $('messageNextLink').addEventListener('click', async () => {
+    $('messageNextLink').addEventListener('click', async (event) => {
+      event.preventDefault();
+      const href = event.currentTarget.href;
       const sentIndex = state.textIndex;
       current.status = 'messaged';
       current.done = true;
       state.lastMessagedIndex = sentIndex;
       advanceQueue(sentIndex);
       renderTexting();
-      await incrementStat('smsLinksOpened', 1);
-      maybeDonationPrompt();
+      // Persist before leaving Text-o-Matic so a closed tab/app resumes after this exact message.
+      await saveActiveSession();
+      incrementStat('smsLinksOpened', 1).then(() => maybeDonationPrompt());
+      window.location.href = href;
     });
-    $('skipNextBtn').addEventListener('click', () => {
+    $('skipNextBtn').addEventListener('click', async () => {
       if (current.status === 'pending') current.status = 'skipped';
       advanceQueue(state.textIndex);
       renderTexting();
+      await saveActiveSession();
     });
-    $('queueBackBtn').addEventListener('click', () => { state.textIndex--; renderTexting(); });
-    $('queueForwardBtn').addEventListener('click', () => { state.textIndex++; renderTexting(); });
+    $('queueBackBtn').addEventListener('click', async () => { state.textIndex--; renderTexting(); await saveActiveSession(); });
+    $('queueForwardBtn').addEventListener('click', async () => { state.textIndex++; renderTexting(); await saveActiveSession(); });
     $('showQueueBtn').addEventListener('click', renderRecipientList);
     $('saveContactBtn')?.addEventListener('click', () => saveVCard(just));
   }
@@ -794,7 +837,7 @@
       <div class="queue-list">${rows}</div>
     </div>`;
     $('backSequential').addEventListener('click', renderTexting);
-    $$('.jump-recipient').forEach(b => b.addEventListener('click', () => { state.textIndex = Number(b.dataset.index); renderTexting(); }));
+    $$('.jump-recipient').forEach(b => b.addEventListener('click', async () => { state.textIndex = Number(b.dataset.index); renderTexting(); await saveActiveSession(); }));
   }
 
   function vcardEscape(value) {
@@ -970,7 +1013,8 @@
     return `sms:${phone}${sep}body=${encodeURIComponent(message)}`;
   }
 
-  function resetCurrentSession() {
+  async function resetCurrentSession() {
+    await clearActiveSession();
     state.rows = [];
     state.headers = [];
     state.sourceName = '';
@@ -979,6 +1023,7 @@
     state.mergeCols = [];
     state.ignoredCols = [];
     state.contactMap = { first:'', last:'', email:'', org:'', title:'', note:'' };
+    state.contactNameOverridden = { first:false, last:false };
     state.contactEnabled = false;
     state.template = '';
     state.previewIndex = 0;
@@ -1021,7 +1066,7 @@
     showStep(1);
   }
 
-  $('finishBtn').addEventListener('click', resetCurrentSession);
+  $('finishBtn').addEventListener('click', () => resetCurrentSession());
 
   function showStep(n) {
     $$('.step-panel').forEach(p => p.classList.toggle('hidden', Number(p.dataset.panel) !== n));
@@ -1055,6 +1100,66 @@
   }
   async function idbGet(key) { const db=await openDb(); return new Promise((res,rej)=>{ const r=db.transaction(STORE).objectStore(STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
   async function idbSet(key,val) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+  async function idbDelete(key) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+  function activeSessionSnapshot() {
+    if (!state.prepared.length) return null;
+    return {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      prepared: state.prepared.map(r => ({
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        message: r.message,
+        status: r.status || 'pending',
+        done: !!r.done,
+        contact: r.contact || null
+      })),
+      textIndex: state.textIndex,
+      lastMessagedIndex: state.lastMessagedIndex
+    };
+  }
+
+  async function saveActiveSession() {
+    try {
+      const snapshot = activeSessionSnapshot();
+      if (snapshot) await idbSet(ACTIVE_SESSION_KEY, snapshot);
+    } catch (err) {
+      console.warn('Text-o-Matic could not save the active texting session:', err);
+    }
+  }
+
+  async function clearActiveSession() {
+    try { await idbDelete(ACTIVE_SESSION_KEY); } catch (err) {
+      console.warn('Text-o-Matic could not clear the active texting session:', err);
+    }
+  }
+
+  async function restoreActiveSession() {
+    if (location.hash.startsWith('#xfer=')) return false;
+    try {
+      const saved = await idbGet(ACTIVE_SESSION_KEY);
+      if (!saved?.prepared?.length) return false;
+      state.prepared = saved.prepared.map((r, i) => ({
+        ...r,
+        id: r.id ?? i,
+        status: ['pending','messaged','skipped'].includes(r.status) ? r.status : (r.done ? 'messaged' : 'pending'),
+        done: r.status === 'messaged' || !!r.done
+      }));
+      enableStep(5);
+      showStep(5);
+      startTexting(state.prepared, {
+        resume: true,
+        textIndex: saved.textIndex,
+        lastMessagedIndex: Number.isInteger(saved.lastMessagedIndex) ? saved.lastMessagedIndex : -1
+      });
+      return true;
+    } catch (err) {
+      console.warn('Text-o-Matic could not restore the active texting session:', err);
+      return false;
+    }
+  }
   async function incrementStat(key, amount) {
     try {
       const stats = (await idbGet('stats')) || { firstUsed:new Date().toISOString(), campaignsCreated:0, recipientsPrepared:0, smsLinksOpened:0, lastUsed:null, donateMilestoneShown:0 };
@@ -1081,7 +1186,12 @@
   function closeDonate() { if ($('donateNever').checked) localStorage.setItem('textList.noDonateAsk','1'); donateDialog.close(); }
   $('donateClose').addEventListener('click', closeDonate); $('donateLater').addEventListener('click', closeDonate); $('donateLink').addEventListener('click', closeDonate);
 
-  handleIncomingTransfer();
+  async function boot() {
+    const incoming = await handleIncomingTransfer();
+    const resumed = incoming ? false : await restoreActiveSession();
+    if (!incoming && !resumed && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
+  }
+  boot();
 
   function setOfflineStatus(text, title) {
     const el = $('offlineStatus');
