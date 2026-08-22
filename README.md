@@ -1,4 +1,9 @@
-# Text-o-Matic v3.0.2
+# Text-o-Matic v3.0.3
+
+## v3.0.3 changes
+
+- Simplified Step 2 contact-card setup: the **Offer “Save contact”** checkbox is always visible, and checking it reveals the contact-field mappings directly.
+- Removed the extra collapsed Contact card disclosure so enabling the feature now takes one click instead of two.
 
 ## v3.0.2 changes
 

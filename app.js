@@ -371,10 +371,12 @@
       </table>
       <div class="mapping-note"><strong>What is “Display name”?</strong> This is what Text-o-Matic will call the recipient on the texting screen. For example, choosing <em>First Name</em> and <em>Last Name</em> can show “Jane Smith.” Display-name columns can still be used as merge fields in your message.</div>
       <div id="displayNameBuilder" class="display-name-builder"></div>
-      <details id="contactCardSetup" class="contact-card-setup">
-        <summary><strong>Contact card (optional)</strong><span>Let texters save a recipient after messaging them.</span></summary>
-        <div class="contact-card-body">
-          <label class="check-row"><input id="contactEnabled" type="checkbox" ${state.contactEnabled ? 'checked' : ''}> Offer “Save contact” after a message is opened</label>
+      <div id="contactCardSetup" class="contact-card-setup">
+        <label class="check-row contact-card-toggle">
+          <input id="contactEnabled" type="checkbox" ${state.contactEnabled ? 'checked' : ''}>
+          <span><strong>Offer “Save contact” after a message is opened</strong><small>Optional</small></span>
+        </label>
+        <div id="contactCardBody" class="contact-card-body" ${state.contactEnabled ? '' : 'hidden'}>
           <p class="muted">Phone comes from the phone-number mapping above. Choose any additional fields you want included. These mappings are also available as message merge fields.</p>
           <div class="contact-field-grid">
             ${contactFieldSelect('first','First name')}
@@ -385,7 +387,7 @@
             ${contactFieldSelect('note','Notes')}
           </div>
         </div>
-      </details>`;
+      </div>`;
     $$('.mapping-select').forEach(sel => {
       if (sel.value === 'merge' && state.mergeCols.includes(sel.dataset.header)) sel.value = 'merge';
       sel.addEventListener('change', () => {
@@ -394,7 +396,11 @@
         renderDisplayNameBuilder();
       });
     });
-    $('contactEnabled')?.addEventListener('change', syncContactMapFromUI);
+    $('contactEnabled')?.addEventListener('change', () => {
+      syncContactMapFromUI();
+      const body = $('contactCardBody');
+      if (body) body.hidden = !state.contactEnabled;
+    });
     $$('.contact-field-select').forEach(sel => sel.addEventListener('change', () => {
       if (sel.dataset.contactKey === 'first' || sel.dataset.contactKey === 'last') {
         state.contactNameOverridden[sel.dataset.contactKey] = true;

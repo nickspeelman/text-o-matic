@@ -168,9 +168,11 @@ code { background: #edf0f3; padding: 2px 5px; border-radius: 5px; }
 
 /* v3 contact-card setup */
 .contact-card-setup { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.contact-card-setup summary { cursor: pointer; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
-.contact-card-setup summary span { color: var(--muted); font-size: .88rem; font-weight: 400; }
+.contact-card-toggle { padding: 14px 16px; align-items: flex-start; cursor: pointer; }
+.contact-card-toggle > span { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.contact-card-toggle small { color: var(--muted); font-size: .78rem; font-weight: 400; }
 .contact-card-body { border-top: 1px solid var(--border); padding: 16px; }
+.contact-card-body[hidden] { display: none; }
 .contact-field-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 16px; }
 .contact-field-grid label { margin: 0; }
 .contact-field-grid label span { display: block; margin-bottom: 6px; font-size: .85rem; }
