@@ -1,5 +1,35 @@
-# Text-o-Matic v1.1
-## 2.0.2
+# Text-o-Matic v3.0.3
+
+## v3.0.3 changes
+
+- Simplified Step 2 contact-card setup: the **Offer “Save contact”** checkbox is always visible, and checking it reveals the contact-field mappings directly.
+- Removed the extra collapsed Contact card disclosure so enabling the feature now takes one click instead of two.
+
+## v3.0.2 changes
+
+- Version display now automatically appends `-dev` on `text-o-matic-dev.nickspeelman.com`; production continues to display the normal version number.
+- Contact-card **First name** and **Last name** now default from the Step 2 display-name fields.
+- Recognizable first/given and last/family/surname headers are assigned appropriately even if their display order differs.
+- If the display-name fields change, those contact-name defaults follow them until the user manually changes the corresponding contact-card dropdown.
+
+## v3.0.1 changes
+
+- Added one-active-session queue persistence in IndexedDB.
+- An unfinished texting queue now resumes automatically when Text-o-Matic is reopened on the same device.
+- Queue position, recipient statuses, and the most recently messaged recipient are preserved.
+- Session state is saved before launching the messaging app, so closing the browser/PWA after sending does not lose the next position or Save contact target.
+- The active session remains resumable until Finish is explicitly used.
+
+## v3.0.0 changes
+
+- Added an optional, collapsed Contact card setup to Step 2.
+- Contact cards can map first name, last name, email, organization, title/role, and notes; phone comes from the existing phone mapping.
+- Replaced the sequential texting card with a queue showing Just messaged, Up now, and Next.
+- Added Message & next, Skip & next, Back, Forward, and a full queue browser with persistent Messaged/Skipped/Not contacted statuses.
+- The most recently messaged recipient remains available with Save contact after returning from the messaging app.
+- Contact cards are generated locally as vCard (.vcf) files and are included in device-transfer payloads when enabled.
+- Bumped the service-worker app version to 3.0.0.
+
 
 - Reframed QR handoff as Device Transfer and added explicit privacy/verifiability explanations.
 

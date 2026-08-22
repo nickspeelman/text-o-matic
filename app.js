@@ -5,6 +5,7 @@
   const QR_TARGET_URL_LENGTH = 1150;
   const DB_NAME = 'text-list-v0.1';
   const STORE = 'kv';
+  const ACTIVE_SESSION_KEY = 'activeTextingSession';
 
   const state = {
     rows: [],
@@ -14,13 +15,17 @@
     displayCols: [],
     mergeCols: [],
     ignoredCols: [],
+    contactMap: { first:'', last:'', email:'', org:'', title:'', note:'' },
+    contactNameOverridden: { first:false, last:false },
+    contactEnabled: false,
     template: '',
     previewIndex: 0,
     issueRules: {},
     prepared: [],
     qrChunks: [],
     qrIndex: 0,
-    textIndex: 0
+    textIndex: 0,
+    lastMessagedIndex: -1
   };
 
   const $ = (id) => document.getElementById(id);
@@ -40,7 +45,10 @@
       const source = await response.text();
       const match = source.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
       if (!match) throw new Error('APP_VERSION not found');
-      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${match[1]}` : match[1]; });
+      const baseVersion = match[1];
+      const isDevSite = location.hostname.toLowerCase() === 'text-o-matic-dev.nickspeelman.com';
+      const displayVersion = isDevSite ? `${baseVersion}-dev` : baseVersion;
+      targets.forEach(el => { el.textContent = el.classList.contains('version') ? `v${displayVersion}` : displayVersion; });
     } catch (err) {
       console.warn('Text-o-Matic could not read the app version from the service worker:', err);
       targets.forEach(el => { el.textContent = el.classList.contains('version') ? 'v?' : '?'; });
@@ -90,7 +98,6 @@
     ? 'https://github.com/nickspeelman/text-o-matic-dev'
     : 'https://github.com/nickspeelman/text-o-matic';
   $$('.source-code-link').forEach(link => { link.href = sourceUrl; });
-  if (!location.hash.startsWith('#xfer=') && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
 
   function parseDelimited(text) {
     text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -158,6 +165,18 @@
     state.displayCols = nameGuesses;
     state.mergeCols = state.headers.filter(h => h !== phoneGuess);
     state.ignoredCols = [];
+    const findHeader = (re) => state.headers.find(h => re.test(h)) || '';
+    state.contactMap = {
+      first: '',
+      last: '',
+      email: findHeader(/email/i),
+      org: findHeader(/organi[sz]ation|company|employer/i),
+      title: findHeader(/title|role|position/i),
+      note: ''
+    };
+    state.contactNameOverridden = { first:false, last:false };
+    applyDefaultContactNameMapping();
+    state.contactEnabled = false;
   }
 
   $('parsePasteBtn').addEventListener('click', () => ingest(parseDelimited($('pasteInput').value), 'Pasted list'));
@@ -304,6 +323,33 @@
     }
   });
 
+  function contactFieldSelect(key, label) {
+    const options = ['<option value="">Not included</option>'].concat(state.headers.map(h => `<option value="${escapeAttr(h)}" ${state.contactMap[key] === h ? 'selected' : ''}>${escapeHtml(h)}</option>`));
+    return `<label><span>${escapeHtml(label)}</span><select class="contact-field-select" data-contact-key="${key}">${options.join('')}</select></label>`;
+  }
+
+  function applyDefaultContactNameMapping() {
+    const display = state.displayCols.filter(h => state.headers.includes(h));
+    const firstNamed = display.find(h => /(^|\b)(first|given)( name)?(\b|$)/i.test(h)) || '';
+    const lastNamed = display.find(h => /(^|\b)(last|family|surname)( name)?(\b|$)/i.test(h)) || '';
+    const fallbackFirst = firstNamed || display.find(h => h !== lastNamed) || '';
+    const fallbackLast = lastNamed || display.find(h => h !== fallbackFirst) || '';
+
+    if (!state.contactNameOverridden.first) state.contactMap.first = fallbackFirst;
+    if (!state.contactNameOverridden.last) state.contactMap.last = fallbackLast;
+
+    ['first','last'].forEach(key => {
+      const select = document.querySelector(`.contact-field-select[data-contact-key="${key}"]`);
+      if (select) select.value = state.contactMap[key] || '';
+    });
+  }
+
+  function syncContactMapFromUI() {
+    const enabled = $('contactEnabled');
+    if (enabled) state.contactEnabled = enabled.checked;
+    $$('.contact-field-select').forEach(sel => { state.contactMap[sel.dataset.contactKey] = sel.value; });
+  }
+
   function buildMappingUI() {
     const area = $('mappingArea');
     area.innerHTML = `
@@ -324,11 +370,43 @@
           </tr>`).join('')}</tbody>
       </table>
       <div class="mapping-note"><strong>What is “Display name”?</strong> This is what Text-o-Matic will call the recipient on the texting screen. For example, choosing <em>First Name</em> and <em>Last Name</em> can show “Jane Smith.” Display-name columns can still be used as merge fields in your message.</div>
-      <div id="displayNameBuilder" class="display-name-builder"></div>`;
+      <div id="displayNameBuilder" class="display-name-builder"></div>
+      <div id="contactCardSetup" class="contact-card-setup">
+        <label class="check-row contact-card-toggle">
+          <input id="contactEnabled" type="checkbox" ${state.contactEnabled ? 'checked' : ''}>
+          <span><strong>Offer “Save contact” after a message is opened</strong><small>Optional</small></span>
+        </label>
+        <div id="contactCardBody" class="contact-card-body" ${state.contactEnabled ? '' : 'hidden'}>
+          <p class="muted">Phone comes from the phone-number mapping above. Choose any additional fields you want included. These mappings are also available as message merge fields.</p>
+          <div class="contact-field-grid">
+            ${contactFieldSelect('first','First name')}
+            ${contactFieldSelect('last','Last name')}
+            ${contactFieldSelect('email','Email')}
+            ${contactFieldSelect('org','Organization')}
+            ${contactFieldSelect('title','Title / role')}
+            ${contactFieldSelect('note','Notes')}
+          </div>
+        </div>
+      </div>`;
     $$('.mapping-select').forEach(sel => {
       if (sel.value === 'merge' && state.mergeCols.includes(sel.dataset.header)) sel.value = 'merge';
-      sel.addEventListener('change', () => { syncMappingsFromUI(); renderDisplayNameBuilder(); });
+      sel.addEventListener('change', () => {
+        syncMappingsFromUI();
+        applyDefaultContactNameMapping();
+        renderDisplayNameBuilder();
+      });
     });
+    $('contactEnabled')?.addEventListener('change', () => {
+      syncContactMapFromUI();
+      const body = $('contactCardBody');
+      if (body) body.hidden = !state.contactEnabled;
+    });
+    $$('.contact-field-select').forEach(sel => sel.addEventListener('change', () => {
+      if (sel.dataset.contactKey === 'first' || sel.dataset.contactKey === 'last') {
+        state.contactNameOverridden[sel.dataset.contactKey] = true;
+      }
+      syncContactMapFromUI();
+    }));
     renderDisplayNameBuilder();
   }
 
@@ -363,6 +441,7 @@
       const to = from + Number(btn.dataset.dir);
       if (to < 0 || to >= state.displayCols.length) return;
       [state.displayCols[from], state.displayCols[to]] = [state.displayCols[to], state.displayCols[from]];
+      applyDefaultContactNameMapping();
       renderDisplayNameBuilder();
     }));
   }
@@ -390,6 +469,7 @@
 
   $('mappingNextBtn').addEventListener('click', async () => {
     syncMappingsFromUI();
+    syncContactMapFromUI();
     if (!state.phoneCol) return alert('Choose one column to use as the phone number.');
     if (!state.mergeCols.length) state.mergeCols = state.headers.filter(h => h !== state.phoneCol && !state.ignoredCols.includes(h));
     // Start each newly mapped list with deduplication enabled. Previous review
@@ -629,7 +709,9 @@
         if (!rule || rule.type === 'exclude') return;
         if (rule.type === 'custom') template = rule.template;
       }
-      list.push({ id: idx, name: displayName(row), phone, message: renderTemplate(template, row, true), done: false });
+      const contact = {};
+      Object.entries(state.contactMap).forEach(([key, header]) => { if (header) contact[key] = String(row[header] ?? '').trim(); });
+      list.push({ id: idx, name: displayName(row), phone, message: renderTemplate(template, row, true), status: 'pending', contact: state.contactEnabled ? contact : null });
     });
     state.prepared = list;
   }
@@ -655,51 +737,140 @@
 
   $('startHereBtn').addEventListener('click', () => startTexting(state.prepared));
 
-  function startTexting(list) {
-    state.prepared = list;
-    state.textIndex = Math.max(0, list.findIndex(r => !r.done));
-    if (state.textIndex < 0) state.textIndex = 0;
+  function startTexting(list, options = {}) {
+    state.prepared = list.map(r => ({ ...r, status: r.status || (r.done ? 'messaged' : 'pending') }));
+    if (options.resume) {
+      state.textIndex = Math.max(0, Math.min(Number(options.textIndex) || 0, Math.max(0, state.prepared.length - 1)));
+      state.lastMessagedIndex = Number.isInteger(options.lastMessagedIndex) ? options.lastMessagedIndex : -1;
+    } else {
+      const pending = state.prepared.findIndex(r => r.status === 'pending');
+      state.textIndex = pending >= 0 ? pending : 0;
+      state.lastMessagedIndex = -1;
+    }
     $('textChoice').classList.add('hidden'); $('qrView').classList.add('hidden'); $('textingView').classList.remove('hidden');
     renderTexting();
+    saveActiveSession();
+  }
+
+  function statusLabel(r) {
+    if (r.status === 'messaged') return 'Messaged';
+    if (r.status === 'skipped') return 'Skipped';
+    return 'Not contacted';
+  }
+
+  function nextQueueIndex(from) {
+    if (!state.prepared.length) return 0;
+    return Math.min(state.prepared.length - 1, from + 1);
+  }
+
+  function advanceQueue(from) {
+    state.textIndex = nextQueueIndex(from);
   }
 
   function renderTexting() {
     const host = $('textingView');
     const list = state.prepared;
     if (!list.length) { host.innerHTML = '<p>No recipients available.</p>'; return; }
-    const r = list[state.textIndex];
-    const completed = list.filter(x => x.done).length;
-    host.innerHTML = `<div class="texting-card">
-      <div class="progress-line"><span>${state.textIndex + 1} of ${list.length}</span><span>${completed} opened</span></div>
-      <h3>${escapeHtml(r.name)}</h3><p class="muted">${escapeHtml(r.phone)}</p>
-      <div class="message-box">${escapeHtml(r.message)}</div>
-      <div class="issue-actions">
-        <a id="smsOpenLink" class="button primary" href="${escapeAttr(smsHref(r.phone, r.message))}">Open text message</a>
-        <button id="skipTextBtn" class="secondary" type="button">Skip</button>
-        <button id="showRecipientListBtn" class="secondary" type="button">Recipient list</button>
-      </div>
-    </div>`;
-    $('smsOpenLink').addEventListener('click', async () => {
-      r.done = true; await incrementStat('smsLinksOpened', 1); maybeDonationPrompt();
-      setTimeout(() => advanceText(), 350);
-    });
-    $('skipTextBtn').addEventListener('click', advanceText);
-    $('showRecipientListBtn').addEventListener('click', renderRecipientList);
-  }
+    state.textIndex = Math.max(0, Math.min(state.textIndex, list.length - 1));
+    const current = list[state.textIndex];
+    const just = state.lastMessagedIndex >= 0 ? list[state.lastMessagedIndex] : null;
+    const next = state.textIndex < list.length - 1 ? list[state.textIndex + 1] : null;
+    const completed = list.filter(x => x.status !== 'pending').length;
+    const primaryLabel = state.textIndex === list.length - 1 ? (current.status === 'messaged' ? 'Message again & finish' : 'Message & finish') : (current.status === 'messaged' ? 'Message again & next' : 'Message & next');
 
-  function advanceText() {
-    if (state.textIndex < state.prepared.length - 1) state.textIndex++;
-    else {
-      const next = state.prepared.findIndex(x => !x.done);
-      if (next >= 0) state.textIndex = next;
-    }
-    renderTexting();
+    host.innerHTML = `<div class="queue-shell">
+      ${just ? `<section class="queue-just">
+        <div class="queue-label">Just messaged</div>
+        <div class="queue-person-line"><div><strong>${escapeHtml(just.name)}</strong><div class="muted">${escapeHtml(just.phone)}</div></div>
+        ${just.contact ? `<button id="saveContactBtn" class="secondary" type="button">Save contact</button>` : ''}</div>
+      </section>` : ''}
+
+      <section class="queue-current">
+        <div class="progress-line"><span>Up now · ${state.textIndex + 1} of ${list.length}</span><span>${completed} handled</span></div>
+        <h3>${escapeHtml(current.name)}</h3>
+        <p class="muted">${escapeHtml(current.phone)} · ${escapeHtml(statusLabel(current))}</p>
+        <div class="message-box">${escapeHtml(current.message)}</div>
+        <div class="queue-primary-actions">
+          <a id="messageNextLink" class="button primary" href="${escapeAttr(smsHref(current.phone, current.message))}">${primaryLabel}</a>
+          <button id="skipNextBtn" class="secondary" type="button">${state.textIndex === list.length - 1 ? 'Skip & finish' : 'Skip & next'}</button>
+        </div>
+      </section>
+
+      ${next ? `<section class="queue-next"><div class="queue-label">Next</div><strong>${escapeHtml(next.name)}</strong><span class="muted">${escapeHtml(next.phone)}</span></section>` : `<section class="queue-next"><div class="queue-label">End of queue</div></section>`}
+
+      <nav class="queue-nav" aria-label="Queue navigation">
+        <button id="queueBackBtn" class="secondary" type="button" ${state.textIndex === 0 ? 'disabled' : ''}>‹ Back</button>
+        <button id="showQueueBtn" class="secondary" type="button">View queue</button>
+        <button id="queueForwardBtn" class="secondary" type="button" ${state.textIndex === list.length - 1 ? 'disabled' : ''}>Forward ›</button>
+      </nav>
+    </div>`;
+
+    $('messageNextLink').addEventListener('click', async (event) => {
+      event.preventDefault();
+      const href = event.currentTarget.href;
+      const sentIndex = state.textIndex;
+      current.status = 'messaged';
+      current.done = true;
+      state.lastMessagedIndex = sentIndex;
+      advanceQueue(sentIndex);
+      renderTexting();
+      // Persist before leaving Text-o-Matic so a closed tab/app resumes after this exact message.
+      await saveActiveSession();
+      incrementStat('smsLinksOpened', 1).then(() => maybeDonationPrompt());
+      window.location.href = href;
+    });
+    $('skipNextBtn').addEventListener('click', async () => {
+      if (current.status === 'pending') current.status = 'skipped';
+      advanceQueue(state.textIndex);
+      renderTexting();
+      await saveActiveSession();
+    });
+    $('queueBackBtn').addEventListener('click', async () => { state.textIndex--; renderTexting(); await saveActiveSession(); });
+    $('queueForwardBtn').addEventListener('click', async () => { state.textIndex++; renderTexting(); await saveActiveSession(); });
+    $('showQueueBtn').addEventListener('click', renderRecipientList);
+    $('saveContactBtn')?.addEventListener('click', () => saveVCard(just));
   }
 
   function renderRecipientList() {
-    $('textingView').innerHTML = `<div class="texting-card"><div class="progress-line"><strong>Recipients</strong><button id="backSequential" class="secondary" type="button">Sequential view</button></div>${state.prepared.map((r,i) => `<div class="recipient-row"><div><strong>${r.done ? '✓ ' : ''}${escapeHtml(r.name)}</strong><p>${escapeHtml(r.phone)}</p></div><button class="secondary jump-recipient" data-index="${i}" type="button">${r.done ? 'Open again' : 'Open'}</button></div>`).join('')}</div>`;
+    const rows = state.prepared.map((r,i) => `<button class="queue-list-row jump-recipient ${i === state.textIndex ? 'current' : ''}" data-index="${i}" type="button">
+      <span class="queue-list-index">${i + 1}</span>
+      <span class="queue-list-person"><strong>${escapeHtml(r.name)}</strong><small>${escapeHtml(r.phone)}</small></span>
+      <span class="queue-status ${escapeAttr(r.status || 'pending')}">${escapeHtml(statusLabel(r))}</span>
+    </button>`).join('');
+    $('textingView').innerHTML = `<div class="texting-card queue-list-view">
+      <div class="progress-line"><strong>Queue</strong><button id="backSequential" class="secondary" type="button">Back to current</button></div>
+      <p class="muted">Tap any recipient to make them current. Browsing the queue does not change anyone's status.</p>
+      <div class="queue-list">${rows}</div>
+    </div>`;
     $('backSequential').addEventListener('click', renderTexting);
-    $$('.jump-recipient').forEach(b => b.addEventListener('click', () => { state.textIndex = Number(b.dataset.index); renderTexting(); }));
+    $$('.jump-recipient').forEach(b => b.addEventListener('click', async () => { state.textIndex = Number(b.dataset.index); renderTexting(); await saveActiveSession(); }));
+  }
+
+  function vcardEscape(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
+  }
+
+  function saveVCard(recipient) {
+    if (!recipient?.contact) return;
+    const c = recipient.contact;
+    const first = c.first || '';
+    const last = c.last || '';
+    const full = [first, last].filter(Boolean).join(' ').trim() || recipient.name || recipient.phone;
+    const lines = ['BEGIN:VCARD','VERSION:3.0',`FN:${vcardEscape(full)}`,`N:${vcardEscape(last)};${vcardEscape(first)};;;`,`TEL;TYPE=CELL:${vcardEscape(recipient.phone)}`];
+    if (c.email) lines.push(`EMAIL:${vcardEscape(c.email)}`);
+    if (c.org) lines.push(`ORG:${vcardEscape(c.org)}`);
+    if (c.title) lines.push(`TITLE:${vcardEscape(c.title)}`);
+    if (c.note) lines.push(`NOTE:${vcardEscape(c.note)}`);
+    lines.push('END:VCARD');
+    const blob = new Blob([lines.join('\r\n') + '\r\n'], { type:'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${full.replace(/[^a-z0-9 _.-]+/gi,'').trim() || 'contact'}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   $('prepareQrBtn').addEventListener('click', prepareQrTransfer);
@@ -736,8 +907,8 @@
     return chunks;
   }
 
-  function compactRecipient(r) { return [r.name, r.phone, r.message]; }
-  function expandRecipient(a, i) { return { id:i, name:a[0], phone:a[1], message:a[2], done:false }; }
+  function compactRecipient(r) { return [r.name, r.phone, r.message, r.contact || null]; }
+  function expandRecipient(a, i) { return { id:i, name:a[0], phone:a[1], message:a[2], contact:a[3] || null, status:'pending', done:false }; }
 
   async function makeTransferUrl(obj) {
     const raw = new TextEncoder().encode(JSON.stringify(obj));
@@ -848,7 +1019,8 @@
     return `sms:${phone}${sep}body=${encodeURIComponent(message)}`;
   }
 
-  function resetCurrentSession() {
+  async function resetCurrentSession() {
+    await clearActiveSession();
     state.rows = [];
     state.headers = [];
     state.sourceName = '';
@@ -856,6 +1028,9 @@
     state.displayCols = [];
     state.mergeCols = [];
     state.ignoredCols = [];
+    state.contactMap = { first:'', last:'', email:'', org:'', title:'', note:'' };
+    state.contactNameOverridden = { first:false, last:false };
+    state.contactEnabled = false;
     state.template = '';
     state.previewIndex = 0;
     state.issueRules = {};
@@ -863,6 +1038,7 @@
     state.qrChunks = [];
     state.qrIndex = 0;
     state.textIndex = 0;
+    state.lastMessagedIndex = -1;
 
     selectedFile = null;
     $('pasteInput').value = '';
@@ -896,7 +1072,7 @@
     showStep(1);
   }
 
-  $('finishBtn').addEventListener('click', resetCurrentSession);
+  $('finishBtn').addEventListener('click', () => resetCurrentSession());
 
   function showStep(n) {
     $$('.step-panel').forEach(p => p.classList.toggle('hidden', Number(p.dataset.panel) !== n));
@@ -930,6 +1106,66 @@
   }
   async function idbGet(key) { const db=await openDb(); return new Promise((res,rej)=>{ const r=db.transaction(STORE).objectStore(STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
   async function idbSet(key,val) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+  async function idbDelete(key) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+  function activeSessionSnapshot() {
+    if (!state.prepared.length) return null;
+    return {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      prepared: state.prepared.map(r => ({
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        message: r.message,
+        status: r.status || 'pending',
+        done: !!r.done,
+        contact: r.contact || null
+      })),
+      textIndex: state.textIndex,
+      lastMessagedIndex: state.lastMessagedIndex
+    };
+  }
+
+  async function saveActiveSession() {
+    try {
+      const snapshot = activeSessionSnapshot();
+      if (snapshot) await idbSet(ACTIVE_SESSION_KEY, snapshot);
+    } catch (err) {
+      console.warn('Text-o-Matic could not save the active texting session:', err);
+    }
+  }
+
+  async function clearActiveSession() {
+    try { await idbDelete(ACTIVE_SESSION_KEY); } catch (err) {
+      console.warn('Text-o-Matic could not clear the active texting session:', err);
+    }
+  }
+
+  async function restoreActiveSession() {
+    if (location.hash.startsWith('#xfer=')) return false;
+    try {
+      const saved = await idbGet(ACTIVE_SESSION_KEY);
+      if (!saved?.prepared?.length) return false;
+      state.prepared = saved.prepared.map((r, i) => ({
+        ...r,
+        id: r.id ?? i,
+        status: ['pending','messaged','skipped'].includes(r.status) ? r.status : (r.done ? 'messaged' : 'pending'),
+        done: r.status === 'messaged' || !!r.done
+      }));
+      enableStep(5);
+      showStep(5);
+      startTexting(state.prepared, {
+        resume: true,
+        textIndex: saved.textIndex,
+        lastMessagedIndex: Number.isInteger(saved.lastMessagedIndex) ? saved.lastMessagedIndex : -1
+      });
+      return true;
+    } catch (err) {
+      console.warn('Text-o-Matic could not restore the active texting session:', err);
+      return false;
+    }
+  }
   async function incrementStat(key, amount) {
     try {
       const stats = (await idbGet('stats')) || { firstUsed:new Date().toISOString(), campaignsCreated:0, recipientsPrepared:0, smsLinksOpened:0, lastUsed:null, donateMilestoneShown:0 };
@@ -937,7 +1173,7 @@
     } catch { return null; }
   }
   async function rememberMapping() {
-    try { await idbSet('lastMapping', { headers:state.headers, phoneCol:state.phoneCol, displayCols:state.displayCols, mergeCols:state.mergeCols }); } catch {}
+    try { await idbSet('lastMapping', { headers:state.headers, phoneCol:state.phoneCol, displayCols:state.displayCols, mergeCols:state.mergeCols, contactMap:state.contactMap, contactEnabled:state.contactEnabled }); } catch {}
   }
   async function maybeDonationPrompt() {
     try {
@@ -956,7 +1192,12 @@
   function closeDonate() { if ($('donateNever').checked) localStorage.setItem('textList.noDonateAsk','1'); donateDialog.close(); }
   $('donateClose').addEventListener('click', closeDonate); $('donateLater').addEventListener('click', closeDonate); $('donateLink').addEventListener('click', closeDonate);
 
-  handleIncomingTransfer();
+  async function boot() {
+    const incoming = await handleIncomingTransfer();
+    const resumed = incoming ? false : await restoreActiveSession();
+    if (!incoming && !resumed && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
+  }
+  boot();
 
   function setOfflineStatus(text, title) {
     const el = $('offlineStatus');
