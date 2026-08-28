@@ -1,4 +1,4 @@
-# Text-o-Matic v3.1.4
+# Text-o-Matic v3.1.5
 
 ## 3.1.5
 - Made the Maximum-privacy workflow control in Privacy details a centered button.
