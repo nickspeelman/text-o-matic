@@ -1,4 +1,14 @@
-# Text-o-Matic v3.1.3
+# Text-o-Matic v3.1.4
+
+## 3.1.5
+- Made the Maximum-privacy workflow control in Privacy details a centered button.
+- Made Discard & erase a prominent button in both the active queue and the full queue list.
+- Clarified that closing the tab only warns about an unfinished queue and preserves it for resume; it does not erase it.
+
+
+## v3.1.4 changes
+
+- Removed the Maximum privacy workflow from the main Welcome/About help actions. It remains available from Privacy details and the footer next to the offline-readiness indicator.
 
 ## v3.1.3 changes
 
@@ -9,7 +19,7 @@
 
 ## v3.1.2 changes
 
-- Added an always-accessible **Maximum privacy** workflow from Help, Privacy, and the footer next to the offline-readiness indicator.
+- Added an always-accessible **Maximum privacy** workflow from Privacy and the footer next to the offline-readiness indicator.
 - Added guidance for preparing lists fully offline, encrypted offline Device Transfer, minimizing internet connectivity while sending ordinary SMS, and the limits of SMS/messaging-app privacy.
 - Device Transfer URL fragments are now captured and removed synchronously by `bootstrap.js` before third-party libraries load.
 - Added Subresource Integrity (SRI) and CORS protection to the pinned QRCode.js and SheetJS browser libraries.
@@ -149,7 +159,7 @@ Questions, issues, or comments: `nick@nickspeelman.com`
 
 ## Privacy screen
 
-The Welcome/About dialog links to a dedicated Privacy screen and a Maximum privacy workflow explaining local contact/message processing, Device Transfer, offline use, local browser storage, third-party infrastructure boundaries, and the privacy contact address.
+The Welcome/About dialog links to a dedicated Privacy screen. The Privacy screen links to the Maximum privacy workflow explaining local contact/message processing, Device Transfer, offline use, local browser storage, third-party infrastructure boundaries, and the privacy contact address.
 
 
 ## v0.1.10 Excel/PWA fix

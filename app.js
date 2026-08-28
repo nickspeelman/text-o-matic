@@ -130,7 +130,6 @@
     openStackedDialog(transferDialog, event);
   }
 
-  $('maxPrivacyFromHelpBtn')?.addEventListener('click', openMaxPrivacyDialog);
   $('maxPrivacyFromPrivacyBtn')?.addEventListener('click', openMaxPrivacyDialog);
   $('maxPrivacyFooterBtn')?.addEventListener('click', openMaxPrivacyDialog);
   $('maxPrivacyCloseBtn')?.addEventListener('click', () => maxPrivacyDialog.close());
@@ -872,9 +871,9 @@
         <button id="queueForwardBtn" class="secondary" type="button" ${state.textIndex === list.length - 1 ? 'disabled' : ''}>Forward ›</button>
       </nav>
       <div class="queue-retention-note">
-        ${list.some(r => r.status === 'pending') ? '<span>Unfinished queues are stored only in this browser so you can resume them. They expire after 7 days of inactivity and are removed the next time Text-o-Matic runs.</span>' : '<span>This queue is complete. Its persistent resume copy has been removed; this page keeps the completed queue only in memory until you finish or close it.</span>'}
-        <button id="discardQueueBtn" class="link-button danger-link" type="button">Discard &amp; erase</button>
+        ${list.some(r => r.status === 'pending') ? '<span>Unfinished queues are stored only in this browser so you can resume them. Closing the tab keeps this queue for later; it does not erase it. Queues expire after 7 days of inactivity and are removed the next time Text-o-Matic runs.</span>' : '<span>This queue is complete. Its persistent resume copy has been removed; this page keeps the completed queue only in memory until you finish or close it.</span>'}
       </div>
+      <div class="queue-discard-action"><button id="discardQueueBtn" class="secondary queue-discard-button" type="button">Discard &amp; erase</button></div>
     </div>`;
 
     $('messageNextLink').addEventListener('click', async (event) => {
@@ -917,8 +916,11 @@
       <div class="progress-line"><strong>Queue</strong><button id="backSequential" class="secondary" type="button">Back to current</button></div>
       <p class="muted">Tap any recipient to make them current. Browsing the queue does not change anyone's status.</p>
       <div class="queue-list">${rows}</div>
+      <div class="queue-retention-note"><span>Closing the tab keeps an unfinished queue so you can resume it later. It does not erase the queue.</span></div>
+      <div class="queue-discard-action"><button id="discardQueueListBtn" class="secondary queue-discard-button" type="button">Discard &amp; erase</button></div>
     </div>`;
     $('backSequential').addEventListener('click', renderTexting);
+    $('discardQueueListBtn')?.addEventListener('click', discardCurrentQueueWithConfirmation);
     $$('.jump-recipient').forEach(b => b.addEventListener('click', async () => { state.textIndex = Number(b.dataset.index); renderTexting(); await saveActiveSession(); }));
   }
 
