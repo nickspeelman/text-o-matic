@@ -115,8 +115,13 @@
   $('privacyCloseBtn').addEventListener('click', () => privacyDialog.close());
   $('privacyDoneBtn').addEventListener('click', () => privacyDialog.close());
 
+  const maxPrivacyDialog = $('maxPrivacyDialog');
   const networkDialog = $('networkDialog');
   const transferDialog = $('transferDialog');
+
+  function openMaxPrivacyDialog(event) {
+    openStackedDialog(maxPrivacyDialog, event);
+  }
 
   function openNetworkDialog(event) {
     openStackedDialog(networkDialog, event);
@@ -125,6 +130,11 @@
     openStackedDialog(transferDialog, event);
   }
 
+  $('maxPrivacyFromHelpBtn')?.addEventListener('click', openMaxPrivacyDialog);
+  $('maxPrivacyFromPrivacyBtn')?.addEventListener('click', openMaxPrivacyDialog);
+  $('maxPrivacyFooterBtn')?.addEventListener('click', openMaxPrivacyDialog);
+  $('maxPrivacyCloseBtn')?.addEventListener('click', () => maxPrivacyDialog.close());
+  $('maxPrivacyDoneBtn')?.addEventListener('click', () => maxPrivacyDialog.close());
   $('networkFromHelpBtn')?.addEventListener('click', openNetworkDialog);
   $('networkFromPrivacyBtn')?.addEventListener('click', openNetworkDialog);
   $('transferFromHelpBtn')?.addEventListener('click', openTransferDialog);
@@ -1168,11 +1178,15 @@
   }
 
   async function handleIncomingTransfer() {
-    if (!location.hash.startsWith('#xfer=')) return false;
+    // bootstrap.js captures and scrubs transfer fragments synchronously before
+    // third-party libraries load. Keep a location.hash fallback for older
+    // cached HTML/bootstrap combinations during upgrades.
+    const transferHash = window.__textOMaticIncomingTransferHash || (location.hash.startsWith('#xfer=') ? location.hash : '');
+    window.__textOMaticIncomingTransferHash = '';
+    if (!transferHash.startsWith('#xfer=')) return false;
+    if (location.hash.startsWith('#xfer=')) history.replaceState(null, '', `${location.pathname}${location.search}`);
     try {
-      const decoded = await parseTransferHash(location.hash);
-      // Remove the encoded transfer payload from the current URL as soon as it has been read.
-      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      const decoded = await parseTransferHash(transferHash);
       if (!decoded) throw new Error('This QR code does not contain a valid Text-o-Matic transfer.');
       document.querySelector('main').querySelectorAll('.step-panel').forEach(x => x.classList.add('hidden'));
       document.querySelector('.steps').classList.add('hidden');
@@ -1233,7 +1247,8 @@
       }
       return true;
     } catch (err) {
-      // Even malformed/unsupported transfer payloads should not remain in visible browser history.
+      // bootstrap.js normally scrubbed the payload before this code ran; the
+      // fallback covers an older cached bootstrap/page during an upgrade.
       if (location.hash.startsWith('#xfer=')) history.replaceState(null, '', `${location.pathname}${location.search}`);
       $('incomingTransfer').classList.remove('hidden'); $('incomingTransfer').innerHTML = `<h2>Transfer problem</h2><p>${escapeHtml(err.message || String(err))}</p>`;
       return true;
@@ -1507,8 +1522,10 @@
   $('donateClose').addEventListener('click', closeDonate); $('donateLater').addEventListener('click', closeDonate); $('donateLink').addEventListener('click', closeDonate);
 
   async function boot() {
-    await cleanupExpiredLocalData();
+    // Consume a captured transfer fragment before yielding, so the sensitive
+    // value is no longer exposed on window before third-party code executes.
     const incoming = await handleIncomingTransfer();
+    await cleanupExpiredLocalData();
     const resumed = incoming ? false : await restoreActiveSession();
     if (!incoming && !resumed && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
   }
@@ -1541,7 +1558,7 @@
     navigator.serviceWorker.addEventListener('message', event => {
       if (event.data?.type !== 'OFFLINE_READY_STATUS') return;
       if (event.data.ready) {
-        setOfflineStatus('Offline ready', 'Text-o-Matic has cached the app, Excel reader, and QR generator for offline use.');
+        setOfflineStatus('Offline ready', 'Text-o-Matic has cached the app and its pinned Excel/QR libraries for offline use.');
       } else if (navigator.onLine) {
         setOfflineStatus('Preparing offline…', 'Keep Text-o-Matic open briefly while it caches the files needed for offline use.');
       } else {

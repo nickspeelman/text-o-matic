@@ -1,4 +1,20 @@
-# Text-o-Matic v3.1.1
+# Text-o-Matic v3.1.3
+
+## v3.1.3 changes
+
+- Revised the **Maximum privacy** workflow to explain the trade-off between minimizing internet connectivity while Text-o-Matic is in use and choosing an end-to-end-encrypted messaging method for delivery.
+- Clarified that ordinary SMS/MMS is not end-to-end encrypted, while iMessage and some RCS conversations may provide end-to-end encryption and therefore require an internet connection.
+- Added guidance to prepare sensitive data offline, then reconnect only when ready to send if end-to-end-encrypted transport is the higher priority.
+- Clarified that RCS encryption is conditional and should not be assumed unless the messaging app indicates that the conversation is encrypted.
+
+## v3.1.2 changes
+
+- Added an always-accessible **Maximum privacy** workflow from Help, Privacy, and the footer next to the offline-readiness indicator.
+- Added guidance for preparing lists fully offline, encrypted offline Device Transfer, minimizing internet connectivity while sending ordinary SMS, and the limits of SMS/messaging-app privacy.
+- Device Transfer URL fragments are now captured and removed synchronously by `bootstrap.js` before third-party libraries load.
+- Added Subresource Integrity (SRI) and CORS protection to the pinned QRCode.js and SheetJS browser libraries.
+- Removed the client-side Cloudflare Web Analytics beacon, reducing the amount of remotely controlled JavaScript that executes on the app page.
+- Expanded privacy language around browser sync/session recovery, hosting/CDN visibility, and the impossibility of guaranteeing privacy with 100% certainty.
 
 ## v3.1.1 changes
 
@@ -80,7 +96,7 @@ A static, client-side web app for preparing personalized SMS or WhatsApp message
 - Added an **Offline ready** status in the footer.
 - The service worker now proactively caches the pinned QR-code and SheetJS libraries while online, in addition to the core app shell.
 - Once the footer reports **Offline ready**, CSV/Excel import, message preparation, QR generation, QR reconstruction, and local state are available without an internet connection.
-- Cloudflare Web Analytics remains optional to operation and simply does not report while offline.
+- At this historical version, Cloudflare Web Analytics was optional to operation and did not report while offline; the client-side analytics beacon was removed in v3.1.2.
 - Updated offline error messages to explain how to finish offline setup.
 - Bumped the single-source service-worker version to `0.1.13`.
 
@@ -113,11 +129,11 @@ A static, client-side web app for preparing personalized SMS or WhatsApp message
 
 ## Privacy model
 
-Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic and is not intentionally sent to Cloudflare Web Analytics. Cloudflare Web Analytics is used only for basic aggregate site-usage and performance measurement.
+Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic. The app does not run a client-side analytics beacon. Ordinary site and library requests made while online can still be visible to the hosting/CDN providers that serve those files, so the in-app Maximum privacy workflow recommends waiting for **Offline ready** and disconnecting before importing especially sensitive data. The workflow also distinguishes that local-isolation benefit from transport encryption: ordinary SMS/MMS is not end-to-end encrypted, while iMessage and some RCS conversations may use end-to-end encryption and therefore require reconnecting before sending.
 
 For Device Transfer, prepared recipient/message data is carried in QR-code URL fragments rather than uploaded to Text-o-Matic for storage. Encryption is enabled by default: the prepared transfer is encrypted locally before QR generation, while a separate six-word transfer code is required to decrypt it on the receiving device. Users may explicitly disable encryption for a transfer. URL fragments are not included in the normal HTTP request for the page.
 
-The QR generator is loaded from pinned `qrcodejs@1.0.0` on jsDelivr. Excel parsing uses the full SheetJS Community Edition browser build `0.20.3` from the SheetJS CDN. These are static JavaScript asset requests; imported contact/message/workbook data is not included in those requests. The service worker runtime-caches both libraries after they have been fetched while the PWA is controlling the page.
+The QR generator is loaded from pinned `qrcodejs@1.0.0` on cdnjs. Excel parsing uses the full SheetJS Community Edition browser build `0.20.3` from the SheetJS CDN. Both script tags use Subresource Integrity (SRI), so the browser refuses to execute a response whose bytes do not match the expected pinned artifact. These are static JavaScript asset requests; imported contact/message/workbook data is not included in those requests. The service worker runtime-caches both libraries after they have been fetched while the PWA is controlling the page.
 
 ## Contact
 
@@ -133,7 +149,7 @@ Questions, issues, or comments: `nick@nickspeelman.com`
 
 ## Privacy screen
 
-The Welcome/About dialog links to a dedicated Privacy screen explaining local contact/message processing, QR device-to-device transfer, Cloudflare Web Analytics, local browser storage, and the privacy contact address.
+The Welcome/About dialog links to a dedicated Privacy screen and a Maximum privacy workflow explaining local contact/message processing, Device Transfer, offline use, local browser storage, third-party infrastructure boundaries, and the privacy contact address.
 
 
 ## v0.1.10 Excel/PWA fix
