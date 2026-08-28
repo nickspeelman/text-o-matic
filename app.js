@@ -6,6 +6,8 @@
   const DB_NAME = 'text-list-v0.1';
   const STORE = 'kv';
   const ACTIVE_SESSION_KEY = 'activeTextingSession';
+  const ACTIVE_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  const TRANSFER_TTL_MS = 24 * 60 * 60 * 1000;
 
   const state = {
     rows: [],
@@ -25,7 +27,10 @@
     qrChunks: [],
     qrIndex: 0,
     textIndex: 0,
-    lastMessagedIndex: -1
+    lastMessagedIndex: -1,
+    qrEncrypted: true,
+    qrTransferCode: '',
+    activeSessionStarted: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -733,11 +738,28 @@
     const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     $('startHereBtn').textContent = mobile ? 'Start texting' : 'Use this device';
     $('qrEstimate').textContent = 'Create one or more QR codes that reconstruct the prepared list on the other device.';
+    if ($('encryptTransferCheckbox')) $('encryptTransferCheckbox').checked = true;
+    updateTransferEncryptionChoice();
   }
+
+  function updateTransferEncryptionChoice() {
+    const checkbox = $('encryptTransferCheckbox');
+    const help = $('transferEncryptionHelp');
+    if (!checkbox || !help) return;
+    if (checkbox.checked) {
+      help.innerHTML = '<strong>Recommended.</strong> QR codes contain encrypted data only. You will enter a separate transfer code on the other device.';
+      help.className = 'muted transfer-security-help';
+    } else {
+      help.innerHTML = '<strong>Unencrypted transfer.</strong> No transfer code is required, but the QR codes contain readable list and message data. A camera or QR-scanning app may retain that data in its scan history.';
+      help.className = 'transfer-security-help warning-text';
+    }
+  }
+  $('encryptTransferCheckbox')?.addEventListener('change', updateTransferEncryptionChoice);
 
   $('startHereBtn').addEventListener('click', () => startTexting(state.prepared));
 
   function startTexting(list, options = {}) {
+    state.activeSessionStarted = true;
     state.prepared = list.map(r => ({ ...r, status: r.status || (r.done ? 'messaged' : 'pending') }));
     if (options.resume) {
       state.textIndex = Math.max(0, Math.min(Number(options.textIndex) || 0, Math.max(0, state.prepared.length - 1)));
@@ -803,6 +825,10 @@
         <button id="showQueueBtn" class="secondary" type="button">View queue</button>
         <button id="queueForwardBtn" class="secondary" type="button" ${state.textIndex === list.length - 1 ? 'disabled' : ''}>Forward ›</button>
       </nav>
+      <div class="queue-retention-note">
+        ${list.some(r => r.status === 'pending') ? '<span>Unfinished queues are stored only in this browser so you can resume them. They expire after 7 days of inactivity and are removed the next time Text-o-Matic runs.</span>' : '<span>This queue is complete. Its persistent resume copy has been removed; this page keeps the completed queue only in memory until you finish or close it.</span>'}
+        <button id="discardQueueBtn" class="link-button danger-link" type="button">Discard &amp; erase</button>
+      </div>
     </div>`;
 
     $('messageNextLink').addEventListener('click', async (event) => {
@@ -814,10 +840,13 @@
       state.lastMessagedIndex = sentIndex;
       advanceQueue(sentIndex);
       renderTexting();
-      // Persist before leaving Text-o-Matic so a closed tab/app resumes after this exact message.
+      // Persist unfinished work before leaving Text-o-Matic. If that was the last pending
+      // recipient, saveActiveSession() removes the persistent resume copy instead.
       await saveActiveSession();
       incrementStat('smsLinksOpened', 1).then(() => maybeDonationPrompt());
+      suppressExitWarning = true;
       window.location.href = href;
+      setTimeout(() => { suppressExitWarning = false; }, 1500);
     });
     $('skipNextBtn').addEventListener('click', async () => {
       if (current.status === 'pending') current.status = 'skipped';
@@ -829,6 +858,7 @@
     $('queueForwardBtn').addEventListener('click', async () => { state.textIndex++; renderTexting(); await saveActiveSession(); });
     $('showQueueBtn').addEventListener('click', renderRecipientList);
     $('saveContactBtn')?.addEventListener('click', () => saveVCard(just));
+    $('discardQueueBtn')?.addEventListener('click', discardCurrentQueueWithConfirmation);
   }
 
   function renderRecipientList() {
@@ -879,21 +909,29 @@
     $('prepareQrBtn').disabled = true; $('prepareQrBtn').textContent = 'Preparing…';
     try {
       if (typeof QRCode === 'undefined') throw new Error('The QR-code generator is unavailable. Reload Text-o-Matic while online once so it can finish preparing for offline use.');
-      state.qrChunks = await chunkRecipients(state.prepared);
+      state.qrEncrypted = $('encryptTransferCheckbox')?.checked !== false;
+      state.qrTransferCode = '';
+      if (state.qrEncrypted) {
+        const encrypted = await chunkEncryptedTransfer(state.prepared);
+        state.qrChunks = encrypted.chunks;
+        state.qrTransferCode = encrypted.code;
+      } else {
+        state.qrChunks = await chunkUnencryptedRecipients(state.prepared);
+      }
       state.qrIndex = 0;
       $('textChoice').classList.add('hidden'); $('textingView').classList.add('hidden'); $('qrView').classList.remove('hidden');
       renderQr();
     } catch (err) { alert(err.message || String(err)); }
-    finally { $('prepareQrBtn').disabled = false; $('prepareQrBtn').textContent = 'Prepare QR transfer'; }
+    finally { $('prepareQrBtn').disabled = false; $('prepareQrBtn').textContent = 'Prepare device transfer'; }
   }
 
-  async function chunkRecipients(recipients) {
+  async function chunkUnencryptedRecipients(recipients) {
     const transferId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2,8)}`;
     const provisional = [];
     let current = [];
     for (const rec of recipients) {
       const candidate = [...current, compactRecipient(rec)];
-      const trial = await makeTransferUrl({ v:1, id:transferId, p:1, n:99, r:candidate });
+      const trial = await makeUnencryptedTransferUrl({ v:1, id:transferId, p:1, n:99, r:candidate });
       if (trial.length > QR_TARGET_URL_LENGTH && current.length) { provisional.push(current); current = [compactRecipient(rec)]; }
       else current = candidate;
     }
@@ -902,7 +940,7 @@
     const chunks = [];
     for (let i = 0; i < provisional.length; i++) {
       const payload = { v:1, id:transferId, p:i+1, n:total, r:provisional[i] };
-      chunks.push({ payload, url: await makeTransferUrl(payload) });
+      chunks.push({ encrypted:false, payload, url: await makeUnencryptedTransferUrl(payload) });
     }
     return chunks;
   }
@@ -910,7 +948,7 @@
   function compactRecipient(r) { return [r.name, r.phone, r.message, r.contact || null]; }
   function expandRecipient(a, i) { return { id:i, name:a[0], phone:a[1], message:a[2], contact:a[3] || null, status:'pending', done:false }; }
 
-  async function makeTransferUrl(obj) {
+  async function makeUnencryptedTransferUrl(obj) {
     const raw = new TextEncoder().encode(JSON.stringify(obj));
     let bytes = raw, mode = 'u';
     if ('CompressionStream' in window) {
@@ -923,24 +961,107 @@
     return `${base}#xfer=${mode}.${encoded}`;
   }
 
-  async function decodeTransferHash(hash) {
-    const m = hash.match(/^#xfer=([ug])\.([A-Za-z0-9_-]+)$/);
+  function normalizeTransferCode(code) {
+    return String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
+  }
+
+  function generateTransferCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const chars = [];
+    while (chars.length < 20) {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      for (const value of bytes) {
+        if (value >= 224) continue; // rejection sampling keeps the 32-character alphabet uniform
+        chars.push(alphabet[value % alphabet.length]);
+        if (chars.length === 20) break;
+      }
+    }
+    return chars.join('').match(/.{1,4}/g).join('-');
+  }
+
+  async function deriveTransferKey(code) {
+    if (!globalThis.crypto?.subtle) throw new Error('This browser does not support secure device-transfer encryption. You can turn off “Encrypt transfer” to use an unencrypted transfer instead.');
+    const normalized = normalizeTransferCode(code);
+    if (normalized.length !== 20) throw new Error('Enter the complete transfer code shown on the other device.');
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`Text-o-Matic transfer key v2:${normalized}`));
+    return crypto.subtle.importKey('raw', digest, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+  }
+
+  async function compressBytes(bytes) {
+    if (!('CompressionStream' in window)) return { bytes, mode:'u' };
+    const cs = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter(); writer.write(bytes); writer.close();
+    return { bytes:new Uint8Array(await new Response(cs.readable).arrayBuffer()), mode:'g' };
+  }
+
+  async function decompressBytes(bytes, mode) {
+    if (mode !== 'g') return bytes;
+    if (!('DecompressionStream' in window)) throw new Error('This browser cannot decompress the Device Transfer.');
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter(); writer.write(bytes); writer.close();
+    return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+
+  function encryptedTransferUrl(meta) {
+    const encoded = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(meta)));
+    return `${location.href.split('#')[0]}#xfer=e.${encoded}`;
+  }
+
+  async function chunkEncryptedTransfer(recipients) {
+    if (!globalThis.crypto?.subtle || !globalThis.crypto?.getRandomValues) {
+      throw new Error('This browser does not support secure device-transfer encryption. Turn off “Encrypt transfer” to continue without encryption.');
+    }
+    const transferId = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(9)));
+    const code = generateTransferCode();
+    const key = await deriveTransferKey(code);
+    const raw = new TextEncoder().encode(JSON.stringify({ v:2, r:recipients.map(compactRecipient) }));
+    const compressed = await compressBytes(raw);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const aad = new TextEncoder().encode(`Text-o-Matic transfer v2:${transferId}:${compressed.mode}`);
+    const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv, additionalData:aad }, key, compressed.bytes));
+    const encodedCiphertext = bytesToBase64Url(ciphertext);
+    const ivEncoded = bytesToBase64Url(iv);
+
+    // Keep each QR URL comfortably under the same target used by the legacy plaintext transfer.
+    let chunkSize = 620;
+    let chunks = [];
+    while (chunkSize >= 160) {
+      const parts = [];
+      for (let i = 0; i < encodedCiphertext.length; i += chunkSize) parts.push(encodedCiphertext.slice(i, i + chunkSize));
+      const total = parts.length;
+      chunks = parts.map((part, i) => {
+        const meta = { v:2, id:transferId, p:i+1, n:total, z:compressed.mode, iv:ivEncoded, c:part };
+        return { encrypted:true, meta, url:encryptedTransferUrl(meta) };
+      });
+      if (chunks.every(item => item.url.length <= QR_TARGET_URL_LENGTH)) break;
+      chunkSize -= 40;
+    }
+    if (!chunks.length || chunks.some(item => item.url.length > QR_TARGET_URL_LENGTH)) throw new Error('This transfer could not be divided into QR codes small enough to scan reliably.');
+    return { chunks, code };
+  }
+
+  async function parseTransferHash(hash) {
+    let m = hash.match(/^#xfer=e\.([A-Za-z0-9_-]+)$/);
+    if (m) {
+      const meta = JSON.parse(new TextDecoder().decode(base64UrlToBytes(m[1])));
+      return { type:'encrypted', meta };
+    }
+    m = hash.match(/^#xfer=([ug])\.([A-Za-z0-9_-]+)$/);
     if (!m) return null;
     let bytes = base64UrlToBytes(m[2]);
-    if (m[1] === 'g') {
-      if (!('DecompressionStream' in window)) throw new Error('This browser cannot decompress the QR transfer.');
-      const ds = new DecompressionStream('gzip');
-      const writer = ds.writable.getWriter(); writer.write(bytes); writer.close();
-      bytes = new Uint8Array(await new Response(ds.readable).arrayBuffer());
-    }
-    return JSON.parse(new TextDecoder().decode(bytes));
+    if (m[1] === 'g') bytes = await decompressBytes(bytes, 'g');
+    return { type:'plain', payload:JSON.parse(new TextDecoder().decode(bytes)) };
   }
 
   function renderQr() {
     const total = state.qrChunks.length, idx = state.qrIndex, item = state.qrChunks[idx];
+    const security = item.encrypted
+      ? `<div class="transfer-security-card"><span class="security-badge">🔒 Encrypted transfer</span><p>The QR codes contain encrypted data only. Scan the QR code(s) first. When the other device asks for the separate transfer code, reveal it here.</p><button id="showTransferCodeBtn" class="secondary" type="button">Show transfer code</button><div id="transferCodeReveal" class="hidden"><div class="transfer-code" aria-label="Transfer code">${escapeHtml(state.qrTransferCode)}</div><p class="muted">The transfer code is not included in any QR code. It is hidden during scanning so a scanner that retains a camera image is less likely to capture the QR code and its key together.</p></div></div>`
+      : `<div class="transfer-status transfer-warning"><strong>Unencrypted transfer.</strong> This QR code contains readable prepared contact and message data. A camera or QR-scanning app may retain it in scan history. Keep the code private.</div>`;
     $('qrView').innerHTML = `<div class="qr-wrap">
       <h3>${total === 1 ? 'Scan this code with your other device' : `QR ${idx + 1} of ${total}`}</h3>
       <p class="muted">${total === 1 ? 'The prepared recipient list will open there.' : `Scan each code in order. After the other device says “${idx + 1} of ${total} received,” continue.`}</p>
+      ${security}
       <div id="qrcode" aria-label="QR code"></div>
       <div class="qr-nav">
         <button id="qrPrev" class="secondary" type="button" ${idx === 0 ? 'disabled' : ''}>Back</button>
@@ -948,45 +1069,115 @@
         <button id="qrNext" class="primary" type="button" ${idx === total - 1 ? 'disabled' : ''}>Next</button>
       </div>
       ${total >= 8 ? `<div class="transfer-status" style="margin-top:18px">This is a very large transfer and requires ${total} scans. You can continue, or return to Review and divide the list into smaller groups.</div>` : ''}
-      <div class="transfer-status" style="margin-top:18px"><strong>Keep this QR code private.</strong> It contains your prepared contact and message data. Treat it like the list itself and don't share or save it.</div>
-      <p class="muted" style="margin-top:12px">The data is encoded directly into the QR code and moved between your devices without being uploaded to or exposed on the internet.</p>
+      <p class="muted" style="margin-top:12px">The transfer travels in the QR code itself; Text-o-Matic does not upload a copy of your prepared list to store the transfer.</p>
     </div>`;
     new QRCode($('qrcode'), { text:item.url, width:280, height:280, correctLevel:QRCode.CorrectLevel.M });
+    $('showTransferCodeBtn')?.addEventListener('click', () => {
+      $('transferCodeReveal')?.classList.remove('hidden');
+      $('showTransferCodeBtn')?.classList.add('hidden');
+    });
     $('qrPrev').addEventListener('click', () => { state.qrIndex--; renderQr(); });
     $('qrNext').addEventListener('click', () => { state.qrIndex++; renderQr(); });
+  }
+
+  function validateEncryptedMeta(meta) {
+    return meta?.v === 2 && typeof meta.id === 'string' && Number.isInteger(meta.p) && Number.isInteger(meta.n) && meta.p >= 1 && meta.n >= 1 && meta.p <= meta.n && ['u','g'].includes(meta.z) && typeof meta.iv === 'string' && typeof meta.c === 'string';
+  }
+
+  async function decryptTransferRecord(record, transferCode) {
+    const key = await deriveTransferKey(transferCode);
+    const combined = Array.from({ length:record.total }, (_, i) => record.parts[String(i + 1)] || '').join('');
+    if (!combined) throw new Error('The encrypted transfer is incomplete.');
+    try {
+      const iv = base64UrlToBytes(record.iv);
+      const ciphertext = base64UrlToBytes(combined);
+      const aad = new TextEncoder().encode(`Text-o-Matic transfer v2:${record.id}:${record.compression}`);
+      let bytes = new Uint8Array(await crypto.subtle.decrypt({ name:'AES-GCM', iv, additionalData:aad }, key, ciphertext));
+      bytes = await decompressBytes(bytes, record.compression);
+      const payload = JSON.parse(new TextDecoder().decode(bytes));
+      if (payload?.v !== 2 || !Array.isArray(payload.r)) throw new Error('Invalid encrypted transfer payload.');
+      return payload.r.map((a, i) => expandRecipient(a, i));
+    } catch (err) {
+      if (err?.message === 'Invalid encrypted transfer payload.') throw err;
+      throw new Error('That transfer code did not unlock this transfer. Check the code and try again.');
+    }
+  }
+
+  async function showIncomingReady(host, recipients, transferKey, encrypted) {
+    state.prepared = recipients;
+    host.innerHTML = `<div class="transfer-status"><h2>Transfer complete</h2><p>${recipients.length.toLocaleString()} recipients loaded.${encrypted ? ' The QR payload remained encrypted in temporary browser storage until you entered the transfer code.' : ''}</p></div><button id="incomingStart" class="primary" type="button">Start texting</button>`;
+    $('incomingStart').addEventListener('click', async () => {
+      await idbDelete(transferKey);
+      host.classList.add('hidden');
+      document.querySelector('[data-panel="5"]').classList.remove('hidden');
+      startTexting(recipients);
+    });
   }
 
   async function handleIncomingTransfer() {
     if (!location.hash.startsWith('#xfer=')) return false;
     try {
-      const payload = await decodeTransferHash(location.hash);
-      if (!payload?.id || !Array.isArray(payload.r)) throw new Error('This QR code does not contain a valid Text-o-Matic transfer.');
+      const decoded = await parseTransferHash(location.hash);
       // Remove the encoded transfer payload from the current URL as soon as it has been read.
       history.replaceState(null, '', `${location.pathname}${location.search}`);
+      if (!decoded) throw new Error('This QR code does not contain a valid Text-o-Matic transfer.');
       document.querySelector('main').querySelectorAll('.step-panel').forEach(x => x.classList.add('hidden'));
       document.querySelector('.steps').classList.add('hidden');
       const host = $('incomingTransfer'); host.classList.remove('hidden');
-      const key = `transfer:${payload.id}`;
-      const current = (await idbGet(key)) || { total:payload.n, parts:{} };
-      current.total = payload.n; current.parts[String(payload.p)] = payload.r;
-      await idbSet(key, current);
-      const got = Object.keys(current.parts).length;
-      if (got < current.total) {
-        host.innerHTML = `<div class="transfer-status"><h2>${got} of ${current.total} received</h2><p>Return to the first device and scan the next QR code.</p></div><p class="muted">You can close this page if needed. The received parts are stored locally on this device.</p>`;
+
+      if (decoded.type === 'encrypted') {
+        const meta = decoded.meta;
+        if (!validateEncryptedMeta(meta)) throw new Error('This QR code does not contain a valid encrypted Text-o-Matic transfer.');
+        await clearOtherTransferRecords(meta.id);
+        const key = `transfer:${meta.id}`;
+        const now = new Date().toISOString();
+        const current = (await idbGet(key)) || { mode:'encrypted', id:meta.id, total:meta.n, compression:meta.z, iv:meta.iv, parts:{}, createdAt:now };
+        if (current.mode !== 'encrypted' || current.total !== meta.n || current.compression !== meta.z || current.iv !== meta.iv) throw new Error('This QR code does not match the other parts of the current Device Transfer.');
+        current.parts[String(meta.p)] = meta.c;
+        current.updatedAt = now;
+        await idbSet(key, current);
+        const got = Object.keys(current.parts).length;
+        if (got < current.total) {
+          host.innerHTML = `<div class="transfer-status"><h2>${got} of ${current.total} received</h2><p>This transfer is encrypted. Return to the first device and scan the next QR code.</p></div><p class="muted">Encrypted parts are stored temporarily in this browser so you can continue scanning. Incomplete transfers expire after 24 hours of inactivity and are removed the next time Text-o-Matic runs.</p>`;
+        } else {
+          host.innerHTML = `<div class="transfer-status"><h2>All QR codes received</h2><p>This transfer is encrypted. Enter the separate transfer code shown on the first device.</p></div><label for="incomingTransferCode"><strong>Transfer code</strong></label><input id="incomingTransferCode" class="transfer-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"><p id="incomingCodeError" class="status bad hidden" aria-live="polite"></p><button id="unlockTransferBtn" class="primary" type="button">Unlock transfer</button>`;
+          const unlock = async () => {
+            const button = $('unlockTransferBtn');
+            button.disabled = true; button.textContent = 'Unlocking…';
+            try {
+              const recipients = await decryptTransferRecord(current, $('incomingTransferCode').value);
+              await showIncomingReady(host, recipients, key, true);
+            } catch (err) {
+              const error = $('incomingCodeError'); error.textContent = err.message || String(err); error.classList.remove('hidden');
+              button.disabled = false; button.textContent = 'Unlock transfer';
+            }
+          };
+          $('unlockTransferBtn').addEventListener('click', unlock);
+          $('incomingTransferCode').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+          $('incomingTransferCode').focus();
+        }
       } else {
-        const recipients = [];
-        for (let i=1;i<=current.total;i++) (current.parts[String(i)] || []).forEach(a => recipients.push(expandRecipient(a, recipients.length)));
-        state.prepared = recipients;
-        host.innerHTML = `<div class="transfer-status"><h2>Transfer complete</h2><p>${recipients.length.toLocaleString()} recipients loaded.</p></div><button id="incomingStart" class="primary" type="button">Start texting</button>`;
-        $('incomingStart').addEventListener('click', () => {
-          host.classList.add('hidden');
-          document.querySelector('[data-panel="5"]').classList.remove('hidden');
-          startTexting(recipients);
-        });
-        history.replaceState(null, '', location.pathname + location.search);
+        const payload = decoded.payload;
+        if (!payload?.id || !Array.isArray(payload.r)) throw new Error('This QR code does not contain a valid Text-o-Matic transfer.');
+        await clearOtherTransferRecords(payload.id);
+        const key = `transfer:${payload.id}`;
+        const now = new Date().toISOString();
+        const current = (await idbGet(key)) || { mode:'plain', id:payload.id, total:payload.n, parts:{}, createdAt:now };
+        current.total = payload.n; current.parts[String(payload.p)] = payload.r; current.updatedAt = now;
+        await idbSet(key, current);
+        const got = Object.keys(current.parts).length;
+        if (got < current.total) {
+          host.innerHTML = `<div class="transfer-status transfer-warning"><h2>${got} of ${current.total} received</h2><p>This is an unencrypted transfer. Return to the first device and scan the next QR code.</p></div><p class="muted">Received parts are stored temporarily in this browser. Incomplete transfers expire after 24 hours of inactivity and are removed the next time Text-o-Matic runs.</p>`;
+        } else {
+          const recipients = [];
+          for (let i=1;i<=current.total;i++) (current.parts[String(i)] || []).forEach(a => recipients.push(expandRecipient(a, recipients.length)));
+          await showIncomingReady(host, recipients, key, false);
+        }
       }
       return true;
     } catch (err) {
+      // Even malformed/unsupported transfer payloads should not remain in visible browser history.
+      if (location.hash.startsWith('#xfer=')) history.replaceState(null, '', `${location.pathname}${location.search}`);
       $('incomingTransfer').classList.remove('hidden'); $('incomingTransfer').innerHTML = `<h2>Transfer problem</h2><p>${escapeHtml(err.message || String(err))}</p>`;
       return true;
     }
@@ -1021,6 +1212,7 @@
 
   async function resetCurrentSession() {
     await clearActiveSession();
+    await clearAllTransferRecords();
     state.rows = [];
     state.headers = [];
     state.sourceName = '';
@@ -1039,6 +1231,9 @@
     state.qrIndex = 0;
     state.textIndex = 0;
     state.lastMessagedIndex = -1;
+    state.qrEncrypted = true;
+    state.qrTransferCode = '';
+    state.activeSessionStarted = false;
 
     selectedFile = null;
     $('pasteInput').value = '';
@@ -1064,6 +1259,8 @@
     $('textingView').innerHTML = '';
     $('qrView').classList.add('hidden');
     $('qrView').innerHTML = '';
+    if ($('encryptTransferCheckbox')) $('encryptTransferCheckbox').checked = true;
+    updateTransferEncryptionChoice();
 
     $$('.step').forEach((button, idx) => {
       button.disabled = idx !== 0;
@@ -1072,7 +1269,13 @@
     showStep(1);
   }
 
-  $('finishBtn').addEventListener('click', () => resetCurrentSession());
+  async function discardCurrentQueueWithConfirmation() {
+    const unfinished = state.activeSessionStarted && state.prepared.some(r => r.status === 'pending');
+    if (unfinished && !confirm('This queue is unfinished. Discarding it will erase the local resume copy and you will not be able to continue it later. Discard & erase?')) return;
+    await resetCurrentSession();
+  }
+
+  $('finishBtn').addEventListener('click', discardCurrentQueueWithConfirmation);
 
   function showStep(n) {
     $$('.step-panel').forEach(p => p.classList.toggle('hidden', Number(p.dataset.panel) !== n));
@@ -1107,12 +1310,57 @@
   async function idbGet(key) { const db=await openDb(); return new Promise((res,rej)=>{ const r=db.transaction(STORE).objectStore(STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
   async function idbSet(key,val) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(val,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
   async function idbDelete(key) { const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+  async function idbKeys() { const db=await openDb(); return new Promise((res,rej)=>{ const r=db.transaction(STORE).objectStore(STORE).getAllKeys(); r.onsuccess=()=>res(r.result || []); r.onerror=()=>rej(r.error); }); }
+
+  function expiredAt(timestamp, ttlMs) {
+    const time = Date.parse(timestamp || '');
+    return !Number.isFinite(time) || Date.now() - time > ttlMs;
+  }
+
+  async function clearAllTransferRecords() {
+    try {
+      const keys = await idbKeys();
+      await Promise.all(keys.filter(key => typeof key === 'string' && key.startsWith('transfer:')).map(key => idbDelete(key)));
+    } catch (err) { console.warn('Text-o-Matic could not clear temporary Device Transfer data:', err); }
+  }
+
+  async function clearOtherTransferRecords(keepId) {
+    try {
+      const keepKey = `transfer:${keepId}`;
+      const keys = await idbKeys();
+      await Promise.all(keys.filter(key => typeof key === 'string' && key.startsWith('transfer:') && key !== keepKey).map(key => idbDelete(key)));
+    } catch (err) { console.warn('Text-o-Matic could not clear an older Device Transfer:', err); }
+  }
+
+  function savedRecipientIsPending(recipient) {
+    if (recipient?.status === 'messaged' || recipient?.status === 'skipped') return false;
+    if (recipient?.done) return false;
+    return true;
+  }
+
+  async function cleanupExpiredLocalData() {
+    try {
+      const saved = await idbGet(ACTIVE_SESSION_KEY);
+      if (saved) {
+        const completed = Array.isArray(saved.prepared) && saved.prepared.length > 0 && !saved.prepared.some(savedRecipientIsPending);
+        if (completed || expiredAt(saved.lastActivityAt || saved.savedAt, ACTIVE_SESSION_TTL_MS)) await idbDelete(ACTIVE_SESSION_KEY);
+      }
+      const keys = await idbKeys();
+      for (const key of keys) {
+        if (typeof key !== 'string' || !key.startsWith('transfer:')) continue;
+        const transfer = await idbGet(key);
+        // Legacy transfer records had no timestamp and could otherwise remain forever.
+        if (!transfer || expiredAt(transfer.updatedAt || transfer.createdAt, TRANSFER_TTL_MS)) await idbDelete(key);
+      }
+    } catch (err) { console.warn('Text-o-Matic could not finish its local privacy cleanup:', err); }
+  }
 
   function activeSessionSnapshot() {
     if (!state.prepared.length) return null;
     return {
-      version: 1,
+      version: 2,
       savedAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString(),
       prepared: state.prepared.map(r => ({
         id: r.id,
         name: r.name,
@@ -1129,6 +1377,11 @@
 
   async function saveActiveSession() {
     try {
+      if (!state.prepared.length) return;
+      if (!state.prepared.some(r => r.status === 'pending')) {
+        await idbDelete(ACTIVE_SESSION_KEY);
+        return;
+      }
       const snapshot = activeSessionSnapshot();
       if (snapshot) await idbSet(ACTIVE_SESSION_KEY, snapshot);
     } catch (err) {
@@ -1147,6 +1400,10 @@
     try {
       const saved = await idbGet(ACTIVE_SESSION_KEY);
       if (!saved?.prepared?.length) return false;
+      if (!saved.prepared.some(savedRecipientIsPending) || expiredAt(saved.lastActivityAt || saved.savedAt, ACTIVE_SESSION_TTL_MS)) {
+        await idbDelete(ACTIVE_SESSION_KEY);
+        return false;
+      }
       state.prepared = saved.prepared.map((r, i) => ({
         ...r,
         id: r.id ?? i,
@@ -1193,11 +1450,19 @@
   $('donateClose').addEventListener('click', closeDonate); $('donateLater').addEventListener('click', closeDonate); $('donateLink').addEventListener('click', closeDonate);
 
   async function boot() {
+    await cleanupExpiredLocalData();
     const incoming = await handleIncomingTransfer();
     const resumed = incoming ? false : await restoreActiveSession();
     if (!incoming && !resumed && localStorage.getItem('textList.hideHelp') !== '1') setTimeout(openHelp, 60);
   }
   boot();
+
+  let suppressExitWarning = false;
+  window.addEventListener('beforeunload', event => {
+    if (suppressExitWarning || !state.activeSessionStarted || !state.prepared.some(r => r.status === 'pending')) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
 
   function setOfflineStatus(text, title) {
     const el = $('offlineStatus');

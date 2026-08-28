@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#315efb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#171b20" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="Prepare personalized text messages from a pasted list, CSV, or Excel workbook, review merge-field issues, and open each message in SMS or WhatsApp. Contact and message data stays on your device.">
+  <meta name="description" content="Prepare personalized text messages from a pasted list, CSV, or Excel workbook, review merge-field issues, and open each message in SMS or WhatsApp. Contact and message data is processed locally in your browser and is not uploaded to Text-o-Matic.">
   <meta name="robots" content="index,follow">
   <meta name="application-name" content="Text-o-Matic">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,10 +16,10 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Text-o-Matic">
   <meta property="og:title" content="Text-o-Matic — Personalized texts from a list">
-  <meta property="og:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+  <meta property="og:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data is processed locally in your browser and is not uploaded to Text-o-Matic.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Text-o-Matic — Personalized texts from a list">
-  <meta name="twitter:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data stays on your device.">
+  <meta name="twitter:description" content="Turn a pasted list, CSV, or Excel workbook into personalized, ready-to-open text messages. Your contact and message data is processed locally in your browser and is not uploaded to Text-o-Matic.">
 
   <title>Text-o-Matic — Personalized Messages from Lists, CSV, or Excel</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -66,7 +66,7 @@
     <header class="topbar">
       <div>
         <h1>Text-o-Matic</h1>
-        <p class="tagline">Prepare personalized texts from a list. Your contact and message data stays on your device.</p>
+        <p class="tagline">Prepare personalized texts from a list. Your contact and message data is processed locally in your browser and is not uploaded to Text-o-Matic.</p>
       </div>
       <button id="helpBtn" class="link-button" type="button">Help</button>
     </header>
@@ -211,6 +211,11 @@
             <div class="card">
               <h3>Transfer to another device</h3>
               <p id="qrEstimate">Move the prepared list directly to another device. Nothing is uploaded to store the transfer.</p>
+              <label class="transfer-security-option">
+                <input id="encryptTransferCheckbox" type="checkbox" checked>
+                <span><strong>Encrypt transfer</strong> <span class="recommended-label">Recommended</span></span>
+              </label>
+              <p id="transferEncryptionHelp" class="muted transfer-security-help"><strong>Recommended.</strong> QR codes contain encrypted data only. You will enter a separate transfer code on the other device.</p>
               <button id="prepareQrBtn" class="secondary" type="button">Prepare device transfer</button>
               <p class="muted transfer-explainer-link"><button id="transferFromChoiceBtn" class="link-button" type="button">How does device transfer work?</button></p>
             </div>
@@ -230,7 +235,7 @@
     </main>
 
     <footer>
-      <span><strong>Private by design:</strong> contact and message data stays on your devices. <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">Issues or comments?</a></span>
+      <span><strong>Private by design:</strong> Text-o-Matic does not upload your contact lists or message text. <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20feedback">Issues or comments?</a></span>
       <span class="footer-meta"><span id="offlineStatus" class="offline-status" title="Checking whether Text-o-Matic is cached for offline use">Checking offline…</span><span class="version" data-app-version>v…</span></span>
     </footer>
   </div>
@@ -254,7 +259,7 @@
       </ol>
       <div class="privacy-note trust-note">
         <strong>Private by design — and you can verify it.</strong>
-        <p>Your contacts, uploaded file contents, phone numbers, merge-field values, and message text are processed locally in your browser. Text-o-Matic does not send that information to me or to Cloudflare Web Analytics.</p>
+        <p>Your contacts, uploaded file contents, phone numbers, merge-field values, and message text are processed locally in your browser. Text-o-Matic does not upload that information to a Text-o-Matic server or send it to Cloudflare Web Analytics. Unfinished queues can be stored temporarily in this browser so they can be resumed.</p>
         <p class="trust-prompt"><strong>Don't take my word for it:</strong> once Text-o-Matic says <em>Offline ready</em>, disconnect from the internet and keep using it; inspect the open-source code; or watch your browser's network traffic while you use the app.</p>
         <div class="trust-links">
           <button id="privacyFromHelpBtn" class="secondary" type="button">Privacy details</button>
@@ -279,13 +284,17 @@
         </div>
         <button id="privacyCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
       </div>
-      <p><strong>Your contact and message data stays on your devices.</strong> Text-o-Matic processes uploaded file contents, phone numbers, names, merge fields, and message content entirely in your browser. That information is not uploaded to Text-o-Matic and is not sent to Cloudflare Web Analytics.</p>
+      <p><strong>Text-o-Matic does not upload your contact lists or message text.</strong> Uploaded file contents, phone numbers, names, merge fields, contact-card fields, and prepared messages are processed locally in your browser. That information is not sent to a Text-o-Matic server or to Cloudflare Web Analytics.</p>
       <p><strong>You can verify this yourself.</strong> Once the app reports <em>Offline ready</em>, it can keep preparing lists and messages with your internet connection turned off. You can also <a id="networkFromPrivacyBtn" href="#">inspect its network traffic</a> while you work or <a class="source-code-link" href="#" target="_blank" rel="noopener">read the source code on GitHub</a>.</p>
-      <p><strong>Device Transfer does not upload your list.</strong> Text-o-Matic encodes the transfer data directly into one or more QR codes. The code contains the data needed to rebuild the prepared list on the other device; it does not point to a copy of your contacts stored on a server. <a id="transferFromPrivacyBtn" href="#">See exactly how this works</a>.</p>
-      <p><strong>Opening a message hands it to the messaging service you selected.</strong> SMS links are passed to your device's texting app. WhatsApp links include the recipient phone number and prepared message so WhatsApp can open the conversation with the text filled in. From that point, WhatsApp's own service and privacy practices apply.</p>
-      <p><strong>Keep Device Transfer codes private.</strong> Because the prepared contact and message data is in the QR code itself, treat the code like the list itself and do not share or save it.</p>
-      <p><strong>Basic usage analytics.</strong> Text-o-Matic uses Cloudflare Web Analytics so we can tell whether the site is being used and how it performs. It provides aggregate information such as visits, page views, and performance metrics. It does not receive your imported contacts, merge-field values, or message text, and Cloudflare Web Analytics does not use cookies or local storage for analytics.</p>
-      <p><strong>Local browser storage.</strong> Text-o-Matic uses browser storage such as IndexedDB and local storage for app functions including preferences, usage counters, incomplete Device Transfers, and other local state. This information remains in your browser unless you clear it.</p>
+      <p><strong>Unfinished queues are stored temporarily so they can be resumed.</strong> Once texting begins, Text-o-Matic stores the prepared recipients, messages, queue position, statuses, and any mapped contact-card fields in IndexedDB in this browser. When every recipient has been messaged or skipped, that persistent resume copy is removed immediately. Choosing <em>Discard &amp; erase</em> also removes it immediately. If a queue is left unfinished, it expires after 7 days of inactivity and is removed the next time Text-o-Matic runs. If Text-o-Matic is never opened again, the app cannot wake itself up later just to delete browser storage.</p>
+      <p><strong>Device Transfer does not upload your list.</strong> Text-o-Matic places the transfer payload directly in one or more QR codes rather than storing a server-side copy. <a id="transferFromPrivacyBtn" href="#">See exactly how this works</a>.</p>
+      <p><strong>Device Transfers are encrypted by default.</strong> In encrypted mode, Text-o-Matic encrypts the prepared transfer locally using AES-GCM before creating the QR codes. The QR codes contain encrypted data, while the separate transfer code needed to decrypt them is shown only on the first device and is not included in the QR codes. The transfer code stays hidden on the QR screen until you choose to reveal it after scanning. Encryption can be turned off for an easier transfer; in that case the QR codes contain readable contact and message data.</p>
+      <p><strong>Temporary Device Transfer data is also cleaned up.</strong> While a multi-code transfer is being scanned, received parts are stored temporarily in IndexedDB so the next QR code can be added. Encrypted transfers remain encrypted in that temporary storage until the separate transfer code is entered. The temporary transfer record is removed when the list becomes the active texting queue. Abandoned or incomplete transfers expire after 24 hours of inactivity and are removed the next time Text-o-Matic runs.</p>
+      <p><strong>Data outside Text-o-Matic is outside its control.</strong> A camera or QR-scanning app may keep its own scan history depending on its settings. With the default encrypted transfer, that history should contain encrypted transfer data rather than readable contacts or messages; with encryption turned off, it may contain the readable QR payload. Once a message is opened in your SMS app or WhatsApp, it is subject to that app's, service's, and where applicable your carrier's privacy, security, and retention practices. Text-o-Matic cannot view or delete information stored by those other apps or services.</p>
+      <p><strong>Your browser and device have their own privacy behavior.</strong> Browser privacy settings, private/incognito modes, storage-management policies, or clearing site data may delete Text-o-Matic's local storage earlier than described above, which can make an unfinished queue impossible to resume. Depending on your browser, operating system, backup settings, sync features, or device-management configuration, locally stored browser data may also be handled by features outside Text-o-Matic's control. On a shared device or browser profile, another person with access to that profile may be able to reopen an unfinished queue.</p>
+      <p><strong>Closing an unfinished queue does not automatically erase it.</strong> Text-o-Matic uses a browser-provided leave-page warning when possible so you are reminded that unfinished work will remain available for resume. Browsers, especially on mobile devices, do not reliably let a web app run cleanup code as it closes. Use <em>Discard &amp; erase</em> when you want the local resume copy removed immediately.</p>
+      <p><strong>Basic usage analytics.</strong> Text-o-Matic uses Cloudflare Web Analytics to understand aggregate site use and performance. It does not receive imported contacts, merge-field values, contact-card fields, or message text, and Cloudflare Web Analytics does not use cookies or local storage for analytics.</p>
+      <p><strong>Other local data.</strong> Text-o-Matic also stores non-list information such as preferences, usage counters, and recent column-mapping choices. Those records do not contain the recipient rows or prepared message text and may remain until browser site data is cleared.</p>
       <p>Questions about privacy can be sent to <a href="mailto:nick@nickspeelman.com?subject=Text-o-Matic%20privacy">nick@nickspeelman.com</a>.</p>
       <div class="dialog-actions"><button id="privacyDoneBtn" class="primary" type="button">Done</button></div>
       <p class="dialog-version">Version <span data-app-version>…</span></p>
@@ -325,12 +334,15 @@
         </div>
         <button id="transferCloseBtn" class="icon-btn" type="button" aria-label="Close">×</button>
       </div>
-      <p><strong>A QR code is just machine-readable data.</strong> It does not inherently mean “internet” or “website.” Text-o-Matic puts the information needed for the transfer directly into the code itself.</p>
-      <p><strong>There is no online copy of your contact list for the QR code to retrieve.</strong> When the other device scans the code, Text-o-Matic reads the encoded data and reconstructs the prepared list locally on that device.</p>
-      <p><strong>The code does include the Text-o-Matic web address so your camera can open the app.</strong> The private transfer data is placed after the <code>#</code> in that address (the <a href="https://en.wikipedia.org/wiki/URI_fragment" target="_blank" rel="noopener noreferrer">URL fragment</a>). Browsers do not send URL fragments to the web server when requesting a page, so the encoded contact/message payload is not part of the normal request to Text-o-Matic.</p>
-      <p>If the receiving device has not already cached Text-o-Matic, it may need internet access to load the app itself. That is separate from transferring your list: the contact and message data remains encoded in the QR code rather than being fetched from a server.</p>
-      <div class="verification-note"><strong>Easy way to think about it:</strong> the QR code is the envelope carrying the data, not a claim ticket for data stored somewhere online.</div>
-      <p><strong>Keep the code private.</strong> Because the transfer information is actually in the QR code, someone who can scan the code may be able to read the transfer. Treat it like the contact list itself.</p>
+      <p><strong>A QR code is just machine-readable data.</strong> It does not inherently mean “internet” or “website.” Text-o-Matic puts the transfer payload directly into the QR code instead of uploading your list and creating a server-side claim link.</p>
+      <p><strong>Encryption is on by default.</strong> Before encrypted QR codes are created, Text-o-Matic encrypts the complete prepared transfer locally in your browser using AES-GCM. The QR codes contain only encrypted transfer data plus the information needed to assemble the parts.</p>
+      <p><strong>The separate transfer code is the key.</strong> Text-o-Matic generates a high-entropy transfer code on the first device. That code is <em>not</em> included in any QR code and stays hidden on the QR screen until you choose to reveal it. After all QR codes are scanned, reveal the code and type it into the receiving Text-o-Matic page so it can decrypt the list locally.</p>
+      <p><strong>This helps if another QR app keeps scan history.</strong> A camera or QR-scanning app can still retain the QR contents according to its own settings, but with encryption enabled those contents are ciphertext rather than readable names, phone numbers, messages, or contact-card fields. Keep the transfer code separate from the QR codes until the transfer is complete.</p>
+      <p><strong>You can turn encryption off.</strong> Unencrypted transfer skips the transfer-code step, but the QR codes then contain readable prepared contact and message data. Treat unencrypted QR codes like the list itself, especially if the camera or QR-scanning app may retain scan history.</p>
+      <p><strong>The code includes the Text-o-Matic web address so your camera can open the app.</strong> Transfer data is placed after the <code>#</code> in that address (the <a href="https://en.wikipedia.org/wiki/URI_fragment" target="_blank" rel="noopener noreferrer">URL fragment</a>). Browsers do not send URL fragments as part of the normal request for the page. Text-o-Matic also removes the transfer fragment from the visible receiving-page URL as soon as it reads it.</p>
+      <p>If the receiving device has not already cached Text-o-Matic, it may need internet access to load the app itself. That request is separate from transferring the list: Text-o-Matic does not upload a copy of the prepared list to store the transfer.</p>
+      <p><strong>Multi-code transfers use temporary browser storage.</strong> Scanned parts are kept in IndexedDB until the transfer can be assembled. Encrypted parts remain encrypted there until you enter the transfer code. The temporary record is deleted when the transfer becomes the active texting queue; abandoned transfers expire after 24 hours of inactivity and are deleted the next time Text-o-Matic runs.</p>
+      <div class="verification-note"><strong>Easy way to think about encrypted transfer:</strong> the QR codes are locked envelopes carrying the data, while the separately displayed transfer code is the key. Neither one is uploaded to Text-o-Matic for storage.</div>
       <div class="dialog-actions"><button id="transferDoneBtn" class="primary" type="button">Done</button></div>
       <p class="dialog-version">Version <span data-app-version>…</span></p>
     </div>

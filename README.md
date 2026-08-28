@@ -1,4 +1,15 @@
-# Text-o-Matic v3.0.3
+# Text-o-Matic v3.1.0
+
+## v3.1.0 changes
+
+- Completed queues now remove their persistent `activeTextingSession` resume record immediately after the last pending recipient is messaged or skipped.
+- Unfinished queues expire after 7 days of inactivity and are purged the next time Text-o-Matic runs. Legacy saved sessions use their existing save timestamp for expiry.
+- Added an always-available **Discard & erase** action for active queues and a best-effort browser leave-page warning when an unfinished queue is still retained.
+- Device Transfer encryption is now enabled by default and can be turned off per transfer. The preference is intentionally not remembered.
+- Encrypted transfers use local Web Crypto AES-GCM encryption. QR codes contain ciphertext; a separate high-entropy transfer code, never included in the QR codes, is required on the receiving device and stays hidden on the QR screen until explicitly revealed after scanning.
+- Multi-QR transfer chunks are retained temporarily in IndexedDB, removed when the transfer becomes the active queue, and expired after 24 hours of inactivity on the next app run. Legacy untimestamped transfer records are removed during cleanup.
+- Starting a different incoming Device Transfer removes older partial transfer records so multiple abandoned transfers do not accumulate.
+- Expanded Privacy and Device Transfer disclosures to cover queue retention, browser/device storage behavior, QR-scanner history, messaging-app custody, encrypted vs. unencrypted transfers, and the limits of cleanup after the app has been closed.
 
 ## v3.0.3 changes
 
@@ -18,7 +29,7 @@
 - An unfinished texting queue now resumes automatically when Text-o-Matic is reopened on the same device.
 - Queue position, recipient statuses, and the most recently messaged recipient are preserved.
 - Session state is saved before launching the messaging app, so closing the browser/PWA after sending does not lose the next position or Save contact target.
-- The active session remains resumable until Finish is explicitly used.
+- The active session remains resumable while unfinished, subject to the current retention policy described above.
 
 ## v3.0.0 changes
 
@@ -98,7 +109,7 @@ A static, client-side web app for preparing personalized SMS or WhatsApp message
 
 Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic and is not intentionally sent to Cloudflare Web Analytics. Cloudflare Web Analytics is used only for basic aggregate site-usage and performance measurement.
 
-For QR handoff, prepared recipient/message data is encoded directly into the QR code. The receiving browser reads the encoded payload from the QR URL fragment and reconstructs the list locally. URL fragments are not included in the normal HTTP request for the page.
+For Device Transfer, prepared recipient/message data is carried in QR-code URL fragments rather than uploaded to Text-o-Matic for storage. Encryption is enabled by default: the prepared transfer is encrypted locally before QR generation, while a separate transfer code is required to decrypt it on the receiving device. Users may explicitly disable encryption for a transfer. URL fragments are not included in the normal HTTP request for the page.
 
 The QR generator is loaded from pinned `qrcodejs@1.0.0` on jsDelivr. Excel parsing uses the full SheetJS Community Edition browser build `0.20.3` from the SheetJS CDN. These are static JavaScript asset requests; imported contact/message/workbook data is not included in those requests. The service worker runtime-caches both libraries after they have been fetched while the PWA is controlling the page.
 
