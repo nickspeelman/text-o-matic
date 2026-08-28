@@ -8,6 +8,42 @@
   const ACTIVE_SESSION_KEY = 'activeTextingSession';
   const ACTIVE_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const TRANSFER_TTL_MS = 24 * 60 * 60 * 1000;
+  const TRANSFER_CODE_WORDS = Object.freeze([
+    'more', 'time', 'other', 'such', 'first', 'same', 'know', 'little', 'long', 'room', 'come', 'people', 'life', 'left', 'great', 'count',
+    'good', 'whole', 'right', 'part', 'having', 'place', 'much', 'state', 'house', 'young', 'take', 'many', 'years', 'look', 'last', 'think',
+    'round', 'found', 'power', 'small', 'give', 'side', 'form', 'make', 'turned', 'door', 'tell', 'moment', 'love', 'large', 'voice', 'words',
+    'cases', 'days', 'dear', 'case', 'smile', 'free', 'known', 'others', 'order', 'course', 'result', 'night', 'work', 'cause', 'going', 'less',
+    'matter', 'world', 'chief', 'front', 'action', 'white', 'mind', 'horse', 'money', 'open', 'want', 'things', 'sent', 'half', 'became', 'year',
+    'taking', 'thing', 'number', 'leave', 'added', 'word', 'parts', 'table', 'home', 'find', 'fact', 'high', 'letter', 'public', 'common', 'talk',
+    'west', 'friend', 'second', 'land', 'light', 'next', 'early', 'best', 'full', 'better', 'horses', 'name', 'road', 'cold', 'forms', 'speak',
+    'means', 'kept', 'line', 'moved', 'rose', 'wish', 'system', 'gone', 'rise', 'third', 'short', 'times', 'black', 'hair', 'clear', 'fellow',
+    'laws', 'help', 'ready', 'peace', 'crowd', 'growth', 'news', 'orders', 'past', 'point', 'close', 'read', 'sound', 'happy', 'self', 'spoke',
+    'coming', 'making', 'opened', 'trade', 'deep', 'show', 'field', 'family', 'rest', 'seeing', 'answer', 'true', 'events', 'occur', 'period', 'kind',
+    'able', 'call', 'lower', 'least', 'spread', 'local', 'middle', 'reason', 'return', 'wall', 'silent', 'steps', 'turn', 'effect', 'water', 'giving',
+    'laid', 'window', 'person', 'soft', 'dinner', 'size', 'hear', 'honor', 'placed', 'dark', 'trying', 'city', 'hard', 'street', 'view', 'doing',
+    'usual', 'fell', 'former', 'lady', 'paper', 'child', 'fine', 'closed', 'town', 'court', 'single', 'coat', 'please', 'sides', 'ground', 'human',
+    'meet', 'nature', 'seat', 'strong', 'girl', 'grew', 'hours', 'reply', 'thin', 'tone', 'bring', 'late', 'pale', 'area', 'feel', 'fresh',
+    'need', 'plan', 'smiled', 'hour', 'bridge', 'pass', 'drew', 'appear', 'change', 'glad', 'causes', 'hope', 'powers', 'voices', 'terms', 'drawn',
+    'fixed', 'liable', 'unable', 'sister', 'smoke', 'staff', 'study', 'blue', 'moving', 'keep', 'direct', 'firm', 'idea', 'master', 'method', 'remain',
+    'group', 'heavy', 'simple', 'step', 'camp', 'dress', 'marked', 'lead', 'vessel', 'duty', 'chair', 'living', 'manner', 'march', 'uncle', 'seems',
+    'lines', 'story', 'term', 'lord', 'office', 'east', 'effort', 'months', 'upper', 'latter', 'sight', 'corner', 'live', 'loved', 'series', 'silver',
+    'wait', 'future', 'book', 'gold', 'ball', 'fall', 'kissed', 'sure', 'easy', 'asking', 'rule', 'clock', 'filled', 'lying', 'quiet', 'earth',
+    'follow', 'houses', 'post', 'region', 'weeks', 'affair', 'glass', 'policy', 'seem', 'note', 'truth', 'bright', 'drove', 'hold', 'papers', 'rushed',
+    'slight', 'lived', 'sleep', 'miss', 'river', 'event', 'spent', 'miles', 'none', 'save', 'vote', 'bank', 'main', 'normal', 'equal', 'plain',
+    'stage', 'enter', 'hill', 'care', 'floor', 'paid', 'value', 'talked', 'thank', 'wide', 'carry', 'ends', 'figure', 'ladies', 'nose', 'object',
+    'sense', 'caused', 'knows', 'real', 'issue', 'larger', 'move', 'grown', 'listen', 'path', 'walked', 'bill', 'extent', 'happen', 'send', 'sign',
+    'stop', 'works', 'avoid', 'bent', 'fate', 'mean', 'notice', 'ranks', 'signs', 'begin', 'sake', 'source', 'active', 'break', 'chance', 'cross',
+    'desire', 'escape', 'rapid', 'threw', 'bound', 'higher', 'marry', 'play', 'week', 'degree', 'gazed', 'sounds', 'hills', 'soil', 'today', 'amount',
+    'bodies', 'broad', 'rich', 'spoken', 'thrown', 'allow', 'boots', 'calm', 'comes', 'glance', 'sort', 'caught', 'loose', 'porch', 'acts', 'gray',
+    'huge', 'places', 'sought', 'stand', 'estate', 'gives', 'looks', 'tender', 'wood', 'rays', 'regard', 'report', 'type', 'bear', 'drive', 'lies',
+    'lodge', 'rooms', 'snow', 'write', 'plans', 'reach', 'weak', 'duties', 'forget', 'nearer', 'rising', 'sofa', 'supply', 'carts', 'hall', 'heat',
+    'minute', 'points', 'rare', 'sharp', 'bald', 'prove', 'speech', 'chest', 'favor', 'goods', 'grand', 'press', 'pushed', 'quick', 'secret', 'social',
+    'visit', 'cotton', 'handed', 'proved', 'mere', 'needed', 'paused', 'sudden', 'suite', 'theory', 'yard', 'circle', 'fourth', 'iron', 'likely', 'major',
+    'origin', 'repair', 'towns', 'valley', 'agree', 'built', 'cent', 'cities', 'demand', 'fields', 'ones', 'sorry', 'thick', 'wealth', 'forced', 'forest',
+    'joined', 'lands', 'spot', 'stream', 'food', 'island', 'liked', 'walk', 'warm', 'yellow', 'bare', 'dull', 'genius', 'grow', 'secure', 'shed',
+  ]);
+  const TRANSFER_CODE_WORD_SET = new Set(TRANSFER_CODE_WORDS);
+  const TRANSFER_CODE_WORD_COUNT = 6;
 
   const state = {
     rows: [],
@@ -747,7 +783,7 @@
     const help = $('transferEncryptionHelp');
     if (!checkbox || !help) return;
     if (checkbox.checked) {
-      help.innerHTML = '<strong>Recommended.</strong> QR codes contain encrypted data only. You will enter a separate transfer code on the other device.';
+      help.innerHTML = '<strong>Recommended.</strong> QR codes contain encrypted data only. You will enter a separate six-word transfer code on the other device.';
       help.className = 'muted transfer-security-help';
     } else {
       help.innerHTML = '<strong>Unencrypted transfer.</strong> No transfer code is required, but the QR codes contain readable list and message data. A camera or QR-scanning app may retain that data in its scan history.';
@@ -961,30 +997,44 @@
     return `${base}#xfer=${mode}.${encoded}`;
   }
 
-  function normalizeTransferCode(code) {
+  function normalizeLegacyTransferCode(code) {
     return String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
   }
 
-  function generateTransferCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const chars = [];
-    while (chars.length < 20) {
-      const bytes = crypto.getRandomValues(new Uint8Array(32));
-      for (const value of bytes) {
-        if (value >= 224) continue; // rejection sampling keeps the 32-character alphabet uniform
-        chars.push(alphabet[value % alphabet.length]);
-        if (chars.length === 20) break;
-      }
-    }
-    return chars.join('').match(/.{1,4}/g).join('-');
+  function normalizeWordTransferCode(code) {
+    return String(code || '').toLowerCase().trim().split(/[^a-z]+/).filter(Boolean);
   }
 
-  async function deriveTransferKey(code) {
+  function generateTransferCode() {
+    // 512 equally likely words = 9 bits per word; six words provide 54 bits
+    // of random entropy. PBKDF2 below deliberately makes offline guessing costly.
+    const values = crypto.getRandomValues(new Uint16Array(TRANSFER_CODE_WORD_COUNT));
+    return Array.from(values, value => TRANSFER_CODE_WORDS[value & 511]).join('-');
+  }
+
+  async function deriveLegacyTransferKey(code) {
     if (!globalThis.crypto?.subtle) throw new Error('This browser does not support secure device-transfer encryption. You can turn off “Encrypt transfer” to use an unencrypted transfer instead.');
-    const normalized = normalizeTransferCode(code);
+    const normalized = normalizeLegacyTransferCode(code);
     if (normalized.length !== 20) throw new Error('Enter the complete transfer code shown on the other device.');
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`Text-o-Matic transfer key v2:${normalized}`));
     return crypto.subtle.importKey('raw', digest, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+  }
+
+  async function deriveWordTransferKey(code, transferId) {
+    if (!globalThis.crypto?.subtle) throw new Error('This browser does not support secure device-transfer encryption. You can turn off “Encrypt transfer” to use an unencrypted transfer instead.');
+    const words = normalizeWordTransferCode(code);
+    if (words.length !== TRANSFER_CODE_WORD_COUNT) throw new Error(`Enter all ${TRANSFER_CODE_WORD_COUNT} words shown on the other device.`);
+    if (words.some(word => !TRANSFER_CODE_WORD_SET.has(word))) throw new Error('One or more transfer-code words are not recognized. Check the spelling and try again.');
+    const normalized = words.join('-');
+    const encoder = new TextEncoder();
+    const material = await crypto.subtle.importKey('raw', encoder.encode(normalized), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name:'PBKDF2', hash:'SHA-256', iterations:150000, salt:encoder.encode(`Text-o-Matic transfer code v3:${transferId}`) },
+      material,
+      { name:'AES-GCM', length:256 },
+      false,
+      ['encrypt','decrypt']
+    );
   }
 
   async function compressBytes(bytes) {
@@ -1013,11 +1063,11 @@
     }
     const transferId = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(9)));
     const code = generateTransferCode();
-    const key = await deriveTransferKey(code);
-    const raw = new TextEncoder().encode(JSON.stringify({ v:2, r:recipients.map(compactRecipient) }));
+    const key = await deriveWordTransferKey(code, transferId);
+    const raw = new TextEncoder().encode(JSON.stringify({ v:3, r:recipients.map(compactRecipient) }));
     const compressed = await compressBytes(raw);
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const aad = new TextEncoder().encode(`Text-o-Matic transfer v2:${transferId}:${compressed.mode}`);
+    const aad = new TextEncoder().encode(`Text-o-Matic transfer v3:${transferId}:${compressed.mode}`);
     const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv, additionalData:aad }, key, compressed.bytes));
     const encodedCiphertext = bytesToBase64Url(ciphertext);
     const ivEncoded = bytesToBase64Url(iv);
@@ -1030,7 +1080,7 @@
       for (let i = 0; i < encodedCiphertext.length; i += chunkSize) parts.push(encodedCiphertext.slice(i, i + chunkSize));
       const total = parts.length;
       chunks = parts.map((part, i) => {
-        const meta = { v:2, id:transferId, p:i+1, n:total, z:compressed.mode, iv:ivEncoded, c:part };
+        const meta = { v:3, id:transferId, p:i+1, n:total, z:compressed.mode, iv:ivEncoded, c:part };
         return { encrypted:true, meta, url:encryptedTransferUrl(meta) };
       });
       if (chunks.every(item => item.url.length <= QR_TARGET_URL_LENGTH)) break;
@@ -1056,7 +1106,7 @@
   function renderQr() {
     const total = state.qrChunks.length, idx = state.qrIndex, item = state.qrChunks[idx];
     const security = item.encrypted
-      ? `<div class="transfer-security-card"><span class="security-badge">🔒 Encrypted transfer</span><p>The QR codes contain encrypted data only. Scan the QR code(s) first. When the other device asks for the separate transfer code, reveal it here.</p><button id="showTransferCodeBtn" class="secondary" type="button">Show transfer code</button><div id="transferCodeReveal" class="hidden"><div class="transfer-code" aria-label="Transfer code">${escapeHtml(state.qrTransferCode)}</div><p class="muted">The transfer code is not included in any QR code. It is hidden during scanning so a scanner that retains a camera image is less likely to capture the QR code and its key together.</p></div></div>`
+      ? `<div class="transfer-security-card"><span class="security-badge">🔒 Encrypted transfer</span><p>The QR codes contain encrypted data only. Scan the QR code(s) first. When the other device asks for the separate six-word transfer code, reveal it here.</p><button id="showTransferCodeBtn" class="secondary" type="button">Show transfer code</button><div id="transferCodeReveal" class="hidden"><div class="transfer-code" aria-label="Transfer code">${escapeHtml(state.qrTransferCode)}</div><p class="muted">The six-word transfer code is not included in any QR code. It is hidden during scanning so a scanner that retains a camera image is less likely to capture the QR code and its key together. Spaces and hyphens are interchangeable when typing it.</p></div></div>`
       : `<div class="transfer-status transfer-warning"><strong>Unencrypted transfer.</strong> This QR code contains readable prepared contact and message data. A camera or QR-scanning app may retain it in scan history. Keep the code private.</div>`;
     $('qrView').innerHTML = `<div class="qr-wrap">
       <h3>${total === 1 ? 'Scan this code with your other device' : `QR ${idx + 1} of ${total}`}</h3>
@@ -1081,21 +1131,24 @@
   }
 
   function validateEncryptedMeta(meta) {
-    return meta?.v === 2 && typeof meta.id === 'string' && Number.isInteger(meta.p) && Number.isInteger(meta.n) && meta.p >= 1 && meta.n >= 1 && meta.p <= meta.n && ['u','g'].includes(meta.z) && typeof meta.iv === 'string' && typeof meta.c === 'string';
+    return [2,3].includes(meta?.v) && typeof meta.id === 'string' && Number.isInteger(meta.p) && Number.isInteger(meta.n) && meta.p >= 1 && meta.n >= 1 && meta.p <= meta.n && ['u','g'].includes(meta.z) && typeof meta.iv === 'string' && typeof meta.c === 'string';
   }
 
   async function decryptTransferRecord(record, transferCode) {
-    const key = await deriveTransferKey(transferCode);
+    const version = record.version || 2;
+    const key = version >= 3
+      ? await deriveWordTransferKey(transferCode, record.id)
+      : await deriveLegacyTransferKey(transferCode);
     const combined = Array.from({ length:record.total }, (_, i) => record.parts[String(i + 1)] || '').join('');
     if (!combined) throw new Error('The encrypted transfer is incomplete.');
     try {
       const iv = base64UrlToBytes(record.iv);
       const ciphertext = base64UrlToBytes(combined);
-      const aad = new TextEncoder().encode(`Text-o-Matic transfer v2:${record.id}:${record.compression}`);
+      const aad = new TextEncoder().encode(`Text-o-Matic transfer v${version}:${record.id}:${record.compression}`);
       let bytes = new Uint8Array(await crypto.subtle.decrypt({ name:'AES-GCM', iv, additionalData:aad }, key, ciphertext));
       bytes = await decompressBytes(bytes, record.compression);
       const payload = JSON.parse(new TextDecoder().decode(bytes));
-      if (payload?.v !== 2 || !Array.isArray(payload.r)) throw new Error('Invalid encrypted transfer payload.');
+      if (payload?.v !== version || !Array.isArray(payload.r)) throw new Error('Invalid encrypted transfer payload.');
       return payload.r.map((a, i) => expandRecipient(a, i));
     } catch (err) {
       if (err?.message === 'Invalid encrypted transfer payload.') throw err;
@@ -1131,8 +1184,9 @@
         await clearOtherTransferRecords(meta.id);
         const key = `transfer:${meta.id}`;
         const now = new Date().toISOString();
-        const current = (await idbGet(key)) || { mode:'encrypted', id:meta.id, total:meta.n, compression:meta.z, iv:meta.iv, parts:{}, createdAt:now };
-        if (current.mode !== 'encrypted' || current.total !== meta.n || current.compression !== meta.z || current.iv !== meta.iv) throw new Error('This QR code does not match the other parts of the current Device Transfer.');
+        const current = (await idbGet(key)) || { mode:'encrypted', version:meta.v, id:meta.id, total:meta.n, compression:meta.z, iv:meta.iv, parts:{}, createdAt:now };
+        if (!current.version) current.version = 2; // v3.1.0 encrypted-transfer records predate this field.
+        if (current.mode !== 'encrypted' || current.version !== meta.v || current.total !== meta.n || current.compression !== meta.z || current.iv !== meta.iv) throw new Error('This QR code does not match the other parts of the current Device Transfer.');
         current.parts[String(meta.p)] = meta.c;
         current.updatedAt = now;
         await idbSet(key, current);
@@ -1140,7 +1194,10 @@
         if (got < current.total) {
           host.innerHTML = `<div class="transfer-status"><h2>${got} of ${current.total} received</h2><p>This transfer is encrypted. Return to the first device and scan the next QR code.</p></div><p class="muted">Encrypted parts are stored temporarily in this browser so you can continue scanning. Incomplete transfers expire after 24 hours of inactivity and are removed the next time Text-o-Matic runs.</p>`;
         } else {
-          host.innerHTML = `<div class="transfer-status"><h2>All QR codes received</h2><p>This transfer is encrypted. Enter the separate transfer code shown on the first device.</p></div><label for="incomingTransferCode"><strong>Transfer code</strong></label><input id="incomingTransferCode" class="transfer-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"><p id="incomingCodeError" class="status bad hidden" aria-live="polite"></p><button id="unlockTransferBtn" class="primary" type="button">Unlock transfer</button>`;
+          const wordCode = (current.version || 2) >= 3;
+          const codeHelp = wordCode ? 'Enter the six words shown on the first device. Spaces or hyphens are both fine.' : 'Enter the character code shown on the first device. This older code format is supported for transfers created by Text-o-Matic 3.1.0.';
+          const placeholder = wordCode ? 'home-river-chair-silver-forest-yellow' : 'XXXX-XXXX-XXXX-XXXX-XXXX';
+          host.innerHTML = `<div class="transfer-status"><h2>All QR codes received</h2><p>This transfer is encrypted. ${codeHelp}</p></div><label for="incomingTransferCode"><strong>Transfer code</strong></label><input id="incomingTransferCode" class="transfer-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${placeholder}"><p id="incomingCodeError" class="status bad hidden" aria-live="polite"></p><button id="unlockTransferBtn" class="primary" type="button">Unlock transfer</button>`;
           const unlock = async () => {
             const button = $('unlockTransferBtn');
             button.disabled = true; button.textContent = 'Unlocking…';
