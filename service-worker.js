@@ -1,14 +1,15 @@
-const APP_VERSION = '3.0.3';
+const APP_VERSION = '3.1.5';
 const CACHE_NAME = `text-o-matic-v${APP_VERSION}`;
 const CORE_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './bootstrap.js',
   './app.js',
   './manifest.webmanifest'
 ];
 const OFFLINE_LIBRARY_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
   'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'
 ];
 
@@ -17,8 +18,10 @@ async function cacheOfflineLibraries() {
   await Promise.allSettled(OFFLINE_LIBRARY_ASSETS.map(async url => {
     const existing = await cache.match(url);
     if (existing) return;
-    const response = await fetch(url, { mode: 'no-cors', cache: 'reload' });
-    await cache.put(url, response);
+    const request = new Request(url, { mode: 'cors', credentials: 'omit' });
+    const response = await fetch(request, { cache: 'reload' });
+    if (!response.ok) throw new Error(`Could not cache ${url}: HTTP ${response.status}`);
+    await cache.put(request, response);
   }));
 }
 
