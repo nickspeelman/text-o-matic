@@ -1,4 +1,10 @@
-# Text-o-Matic v3.1.5
+# Text-o-Matic v3.1.6
+
+## 3.1.6
+- Added a production-only, privacy-minimal pageview counter using a Cloudflare Worker and D1. The browser sends one empty POST per production page load with credentials omitted and referrer suppressed; the counter stores only daily aggregate totals.
+- Updated Privacy details to identify Squarespace Domains (DNS), GitHub Pages (hosting), the two pinned library CDNs, and the minimal Cloudflare pageview counter without implying that infrastructure providers see contact or message data.
+- Updated the network-inspection guide so the expected pageview-counter request is visible and explainable.
+
 
 ## 3.1.5
 - Made the Maximum-privacy workflow control in Privacy details a centered button.
@@ -139,7 +145,7 @@ A static, client-side web app for preparing personalized SMS or WhatsApp message
 
 ## Privacy model
 
-Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic. The app does not run a client-side analytics beacon. Ordinary site and library requests made while online can still be visible to the hosting/CDN providers that serve those files, so the in-app Maximum privacy workflow recommends waiting for **Offline ready** and disconnecting before importing especially sensitive data. The workflow also distinguishes that local-isolation benefit from transport encryption: ordinary SMS/MMS is not end-to-end encrypted, while iMessage and some RCS conversations may use end-to-end encryption and therefore require reconnecting before sending.
+Text-o-Matic processes imported phone numbers, names, merge fields, and message text in the user's browser. That contact/message payload is not uploaded to Text-o-Matic. Squarespace Domains provides DNS and GitHub Pages hosts the site; while online, the two pinned browser libraries are fetched from their respective CDNs. On the production site, `bootstrap.js` also sends one empty POST per page load to a Cloudflare Worker with credentials omitted and the referrer suppressed. The Worker/D1 analytics design retains only a daily aggregate pageview count, not individual visit records or analytics identifiers. Ordinary infrastructure providers still process the network information necessary to handle the requests they receive. The in-app Maximum privacy workflow recommends waiting for **Offline ready** and disconnecting before importing especially sensitive data. The workflow also distinguishes that local-isolation benefit from transport encryption: ordinary SMS/MMS is not end-to-end encrypted, while iMessage and some RCS conversations may use end-to-end encryption and therefore require reconnecting before sending.
 
 For Device Transfer, prepared recipient/message data is carried in QR-code URL fragments rather than uploaded to Text-o-Matic for storage. Encryption is enabled by default: the prepared transfer is encrypted locally before QR generation, while a separate six-word transfer code is required to decrypt it on the receiving device. Users may explicitly disable encryption for a transfer. URL fragments are not included in the normal HTTP request for the page.
 
