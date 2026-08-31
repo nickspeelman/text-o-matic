@@ -23,7 +23,7 @@
     host === 'text-o-matic.nickspeelman.com'
       ? 'https://text-o-matic-pageviews.nick-958.workers.dev/view'
       : host === 'text-o-matic-dev.nickspeelman.com'
-        ? 'https://text-o-matic-pageviews-dev.nick-958.workers.dev/view'
+        ? 'https://text-o-matic-dev.nick-958.workers.dev/view'
         : '';
 
   if (pageviewWorkerUrl) {

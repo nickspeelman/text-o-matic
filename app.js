@@ -149,7 +149,7 @@
     ? 'https://github.com/nickspeelman/text-o-matic-dev'
     : 'https://github.com/nickspeelman/text-o-matic';
   const workerBaseUrl = isDevSite
-    ? 'https://text-o-matic-pageviews-dev.nick-958.workers.dev'
+    ? 'https://text-o-matic-dev.nick-958.workers.dev'
     : 'https://text-o-matic-pageviews.nick-958.workers.dev';
 
   $('.source-code-link').forEach(link => { link.href = sourceUrl; });

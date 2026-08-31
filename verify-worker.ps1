@@ -6,7 +6,7 @@ param(
 $url = if ($Environment -eq "production") {
   "https://text-o-matic-pageviews.nick-958.workers.dev/health"
 } else {
-  "https://text-o-matic-pageviews-dev.nick-958.workers.dev/health"
+  "https://text-o-matic-dev.nick-958.workers.dev/health""
 }
 
 Write-Host "Checking $url"
