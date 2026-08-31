@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "text-o-matic-pageviews",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": true,
+  "vars": {
+    "DEPLOYMENT_ENV": "production",
+    "ALLOWED_ORIGIN": "https://text-o-matic.nickspeelman.com",
+    "SOURCE_URL": "https://github.com/nickspeelman/text-o-matic/blob/Main/worker/src/index.js",
+    "SCHEMA_URL": "https://github.com/nickspeelman/text-o-matic/blob/Main/worker/schema.sql"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "text-o-matic-pageviews",
+      "database_id": "a4a376b1-14fa-48b2-983f-0f046950fe19"
+    }
+  ],
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  }
+}
