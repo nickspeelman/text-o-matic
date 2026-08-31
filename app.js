@@ -152,14 +152,14 @@
     ? 'https://text-o-matic-dev.nick-958.workers.dev'
     : 'https://text-o-matic-pageviews.nick-958.workers.dev';
 
-  $('.source-code-link').forEach(link => { link.href = sourceUrl; });
-  $('.worker-source-link').forEach(link => {
+  $$('.source-code-link').forEach(link => { link.href = sourceUrl; });
+  $$('.worker-source-link').forEach(link => {
     link.href = `${sourceUrl}/blob/Main/worker/src/index.js`;
   });
-  $('.worker-schema-link').forEach(link => {
+  $$('.worker-schema-link').forEach(link => {
     link.href = `${sourceUrl}/blob/Main/worker/schema.sql`;
   });
-  $('.worker-live-link').forEach(link => {
+  $$('.worker-live-link').forEach(link => {
     link.href = `${workerBaseUrl}/health`;
   });
 
