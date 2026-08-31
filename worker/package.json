@@ -1,0 +1,8 @@
+{
+  "name": "text-o-matic-pageview-worker",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "wrangler": "4.127.1"
+  }
+}

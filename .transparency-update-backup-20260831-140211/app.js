@@ -144,24 +144,10 @@
   $('transferCloseBtn')?.addEventListener('click', () => transferDialog.close());
   $('transferDoneBtn')?.addEventListener('click', () => transferDialog.close());
 
-  const isDevSite = location.hostname === 'text-o-matic-dev.nickspeelman.com';
-  const sourceUrl = isDevSite
+  const sourceUrl = location.hostname === 'text-o-matic-dev.nickspeelman.com'
     ? 'https://github.com/nickspeelman/text-o-matic-dev'
     : 'https://github.com/nickspeelman/text-o-matic';
-  const workerBaseUrl = isDevSite
-    ? 'https://text-o-matic-pageviews-dev.nick-958.workers.dev'
-    : 'https://text-o-matic-pageviews.nick-958.workers.dev';
-
-  $('.source-code-link').forEach(link => { link.href = sourceUrl; });
-  $('.worker-source-link').forEach(link => {
-    link.href = `${sourceUrl}/blob/Main/worker/src/index.js`;
-  });
-  $('.worker-schema-link').forEach(link => {
-    link.href = `${sourceUrl}/blob/Main/worker/schema.sql`;
-  });
-  $('.worker-live-link').forEach(link => {
-    link.href = `${workerBaseUrl}/health`;
-  });
+  $$('.source-code-link').forEach(link => { link.href = sourceUrl; });
 
   function parseDelimited(text) {
     text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
